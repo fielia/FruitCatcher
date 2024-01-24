@@ -23,7 +23,29 @@ light_sensor = Light(brain.three_wire_port.e) # TODO: has a range of 30 to 3000 
 
 drive_motors = MotorGroup(left_motor, right_motor)
 
+drive_motors.set_velocity(100)
 arm_motor.set_velocity(150)
 
+def light_test():
+	drive_motors.spin(FORWARD)
+	brain.screen.print_at("Forward!", x=50, y=100)
+	while light_sensor.value() < 0: # TODO: confirm the value when at tape
+		brain.screen.print_at(light_sensor.value(), x=50, y=50)
+		wait(100)
+	drive_motors.stop()
+	wait(1000)
+	drive_motors.spin(REVERSE)
+	brain.screen.print_at("Reverse!", x=50, y=100)
+	wait(250)
+	while light_sensor.value() < 0: # TODO: confirm the value when at tape
+		brain.screen.print_at(light_sensor.value(), x=50, y=50)
+		wait(100)
+	drive_motors.stop()
+	wait(1000)
+
 for i in range(10):
-	brain.screen.print_at(light_sensor.
+	brain.screen.print_at(light_sensor.value(), x=50, y=50)
+	wait(100)
+brain.screen.clear_screen()
+brain.screen.print_at("Button Ready", x=50, y=50)
+button.pressed(light_test)
