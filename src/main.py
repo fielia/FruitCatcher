@@ -72,17 +72,17 @@ def light_test():
 	while not back_button.pressing():
 		drive_motors.spin(REVERSE)
 		if not left_correcting and left_light.value() > 2500:
-			correct(REVERSE, left_motor, left_light, True)
+			correct(REVERSE, right_motor, left_light, True)
 			left_correcting = True
 		elif left_correcting and left_light.value() < 1000:
-			correct(REVERSE, left_motor, left_light, False)
+			correct(REVERSE, right_motor, left_light, False)
 			left_correcting = False
 		
 		if not right_correcting and right_light.value() > 2500:
-			correct(REVERSE, right_motor, right_light, True)
+			correct(REVERSE, left_motor, right_light, True)
 			right_correcting = True
 		elif right_correcting and right_light.value() < 1000:
-			correct(REVERSE, right_motor, right_light, False)
+			correct(REVERSE, left_motor, right_light, False)
 			right_correcting = False
 	brain.screen.print_at("All Done.", x=50, y=100)
 	drive_motors.stop()
