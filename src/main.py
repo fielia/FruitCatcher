@@ -17,13 +17,14 @@ left_motor = Motor(Ports.PORT1, GearSetting.RATIO_18_1, False)
 right_motor = Motor(Ports.PORT10, GearSetting.RATIO_18_1, True)
 
 ## define the colors; we'll use the default sensitivity of 3.0
-## you don't have to retrain the camera to use different sensitivities; you can just change the value here
-ORANGE_FRUIT = Signature (1, 4915, 6305, 5610, -2305, -1901, -2103, 3.0, 0)
-LIME = Signature (2, -7385, -6527, -6956, -4551, -3459, -4005, 3.0, 0)
-LEMON = Signature (3, 1907, 2409, 2158, -3619, -3129, -3374, 3.0, 0)
+## you don't have to retrain the camera to use different sensitivities; you can just change the value here # TODO: fix signatures
+ORANGE_FRUIT = Signature(1, 4915, 6305, 5610, -2305, -1901, -2103, 3.0, 0)
+LIME = Signature(2, -7385, -6527, -6956, -4551, -3459, -4005, 3.0, 0)
+LEMON = Signature(3, 1907, 2409, 2158, -3619, -3129, -3374, 3.0, 0)
+DRAGON_FRUIT = Signature(4, 0, 0, 0, 0, 0, 0, 3.0, 0,)
 
 ## define the camera on port 3; the library says the colors are optional -- you do you
-Vision3 = Vision (Ports.PORT3, 72, ORANGE_FRUIT, LIME, LEMON)
+Vision3 = Vision(Ports.PORT3, 72, ORANGE_FRUIT, LIME, LEMON, DRAGON_FRUIT)
 
 brain.screen.print("Hello V5")
 
@@ -49,7 +50,7 @@ def handleButtonPress():
 button5 = Bumper(Ports.PORT5)
 button5.pressed(handleButtonPress)
 
-def handleObjects(objects): ## this code doesn't do anything with the objects here, but you could
+def calculateDistance(objects): ## this code doesn't do anything with the objects here, but you could
     cx = Vision3.largest_object().centerX
     cy = Vision3.largest_object().centerY
 
@@ -61,7 +62,7 @@ while True:
     '''
     objects = Vision3.take_snapshot(ORANGE_FRUIT)
     if objects:
-        handleObjects(objects)
+        calculateDistance(objects)
 
     ## a little nap to not overwhelm the system -- the frame rate will be well under 50 Hz anyway
     sleep(20)
