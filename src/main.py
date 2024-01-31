@@ -35,34 +35,38 @@ ROBOT_SEARCHING = 1
 state = ROBOT_IDLE
 
 def handleButtonPress():
-    global state
-    if(state == ROBOT_IDLE):
-        print('IDLE -> SEARCHING')
-        state = ROBOT_SEARCHING
-        left_motor.spin(FORWARD, 30)
-        right_motor.spin(FORWARD, -30)
+	global state
+	if(state == ROBOT_IDLE):
+		print('IDLE -> SEARCHING')
+		state = ROBOT_SEARCHING
+		left_motor.spin(FORWARD, 30)
+		right_motor.spin(FORWARD, -30)
 
-    else:
-        print(' -> IDLE')
-        left_motor.stop()
-        right_motor.stop()
+	else:
+		print(' -> IDLE')
+		left_motor.stop()
+		right_motor.stop()
 
 button5 = Bumper(Ports.PORT5)
 button5.pressed(handleButtonPress)
 
-def calculateDistance(objects): ## this code doesn't do anything with the objects here, but you could
-    cx = Vision3.largest_object().centerX
-    cy = Vision3.largest_object().centerY
+def determineFruit(objects):
+	return
+def calculateDistance(objects, fruit_type): ## this code doesn't do anything with the objects here, but you could
+	cx = Vision3.largest_object().centerX
+	cy = Vision3.largest_object().centerY
 
-    print(cx, cy)
+	print(cx, cy)
 
 while True:
-    '''
-    These lines correspond to a checker-handler: check for an object and handle it if there is one.
-    '''
-    objects = Vision3.take_snapshot(ORANGE_FRUIT)
-    if objects:
-        calculateDistance(objects)
+	'''
+	These lines correspond to a checker-handler: check for an object and handle it if there is one.
+	'''
+	objects = Vision3.take_snapshot(ORANGE_FRUIT)
+	if objects:
+		fruit_type = determineFruit(objects)
+		calculateDistance(objects, fruit_type)
 
-    ## a little nap to not overwhelm the system -- the frame rate will be well under 50 Hz anyway
-    sleep(20)
+
+	## a little nap to not overwhelm the system -- the frame rate will be well under 50 Hz anyway
+	sleep(20)
