@@ -1,8 +1,8 @@
 # ---------------------------------------------------------------------------- #
 #                                                                              #
 # 	Module:       main.py                                                      #
-# 	Author:       glewin                                                       #
-# 	Created:      9/11/2023, 8:28:37 AM                                        #
+# 	Author:       nicholaskruse                                                #
+# 	Created:      1/30/2024, 12:47:11 PM                                       #
 # 	Description:  V5 project                                                   #
 #                                                                              #
 # ---------------------------------------------------------------------------- #
@@ -13,60 +13,76 @@ from vex import *
 # Brain should be defined by default
 brain=Brain()
 
-left_motor = Motor(Ports.PORT1, GearSetting.RATIO_18_1, False)
-right_motor = Motor(Ports.PORT10, GearSetting.RATIO_18_1, True)
+#Color Calibration
+GRAPEFRUIT = Signature(1, 6513, 7443, 6978, 1111, 1431, 1271, 2.2, 0)
+LIME = Signature(2, -6249, -5385, -5817, -3721, -3023, -3372, 2.5, 0)
+LEMON = Signature(3, 2607, 3087, 2846, -3461, -3199, -3330, 2.5, 0)
+ORANGE_FRUIT = Signature(4, 7581, 8071, 7826, -2049, -1809, -1929, 2.5, 0)
+COLORS = [GRAPEFRUIT, LIME, LEMON, ORANGE_FRUIT]
+COLOR_STRINGS = ["GRAPEFRUIT", "LIME", "LEMON", "ORANGE"]
 
-## define the colors; we'll use the default sensitivity of 3.0
-## you don't have to retrain the camera to use different sensitivities; you can just change the value here # TODO: fix signatures
-ORANGE_FRUIT = Signature(1, 4915, 6305, 5610, -2305, -1901, -2103, 3.0, 0)
-LIME = Signature(2, -7385, -6527, -6956, -4551, -3459, -4005, 3.0, 0)
-LEMON = Signature(3, 1907, 2409, 2158, -3619, -3129, -3374, 3.0, 0)
-DRAGON_FRUIT = Signature(4, 0, 0, 0, 0, 0, 0, 3.0, 0,)
+#Vision Defined
+camera = Vision(Ports.PORT10, 43, GRAPEFRUIT, LIME, LEMON, ORANGE_FRUIT)
 
-## define the camera on port 3; the library says the colors are optional -- you do you
-Vision3 = Vision(Ports.PORT3, 72, ORANGE_FRUIT, LIME, LEMON, DRAGON_FRUIT)
+left_motor = Motor(Ports.PORT15, GearSetting.RATIO_18_1, False)
+right_motor = Motor(Ports.PORT21, GearSetting.RATIO_18_1, True)
+arm_motor = Motor(Ports.PORT20, GearSetting.RATIO_18_1, False)
 
-brain.screen.print("Hello V5")
+button = Bumper(brain.three_wire_port.e)
 
-ROBOT_IDLE = 0
-ROBOT_SEARCHING = 1
+ROBOT_IDLE = 0 
+ROBOT_DETECTION = 1
 
-## start in the idle state
 state = ROBOT_IDLE
 
-def handleButtonPress():
-	global state
+def ButtonPress():
+	global state 
+	global objects
 	if(state == ROBOT_IDLE):
-		print('IDLE -> SEARCHING')
-		state = ROBOT_SEARCHING
-		left_motor.spin(FORWARD, 30)
-		right_motor.spin(FORWARD, -30)
-
-	else:
-		print(' -> IDLE')
+		brain.screen.print_at('IDLE -> DETECTION', x=50, y=50)
+		state = ROBOT_DETECTION
+		objects = determineColor()
+		fruit_stats = determineFruit(objects[0])
+		(distance_x, distance_y) = calculateDistance(objects[0], fruit_stats[0], fruit_stats[1])
+		
+	else: 
+		brain.screen.print_at('-> IDLE', x=50, y=50)
 		left_motor.stop()
 		right_motor.stop()
 
-button5 = Bumper(Ports.PORT5)
-button5.pressed(handleButtonPress)
 
-def determineFruit(objects):
-	return
-def calculateDistance(objects, fruit_type): ## this code doesn't do anything with the objects here, but you could
-	cx = Vision3.largest_object().centerX
-	cy = Vision3.largest_object().centerY
+sleep(20)
 
+# returns the objects of the fruit, and displays the color on the screen
+def determineColor() -> Tuple[VisionObject]:
+	for i in range(len(COLORS)):
+		objects: Tuple[VisionObject] = camera.take_snapshot(COLORS[i], 1)
+		if objects:
+			brain.screen.print_at("Color: " + COLOR_STRINGS[i], x=50, y=100)
+			return objects
+
+	raise Exception("No fruit found.")
+
+# NOTE: all measurements are in MM!
+
+fruit_length: int = 0
+possible_widths = [5.5, 9]
+possible_heights = [17, 29, 38]
+
+# returns the width of the fruit (of 2 options) and height off the ground (of 3 options). length is defined below
+def determineFruit(fruit_object: VisionObject) -> Tuple[int, int]:
+	width = 0
+	height = 0
+
+	return (width, height)
+
+# returns the x and y distance away from the camera
+def calculateDistance(fruit_object: VisionObject, fruit_width: int, fruit_height: int) -> Tuple[int, int]: ## this code doesn't do anything with the objects here, but you could
+	cx = fruit_object.centerX
+	cy = fruit_object.centerY
 	print(cx, cy)
 
-while True:
-	'''
-	These lines correspond to a checker-handler: check for an object and handle it if there is one.
-	'''
-	objects = Vision3.take_snapshot(ORANGE_FRUIT)
-	if objects:
-		fruit_type = determineFruit(objects)
-		calculateDistance(objects, fruit_type)
+	distance_x = 0
+	distance_y = 0
 
-
-	## a little nap to not overwhelm the system -- the frame rate will be well under 50 Hz anyway
-	sleep(20)
+	return (distance_x, distance_y)
