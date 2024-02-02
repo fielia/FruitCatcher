@@ -13,11 +13,13 @@ from vex import *
 # Brain should be defined by default
 brain=Brain()
 
+sensitivity = 2
+
 #Color Calibration
-GRAPEFRUIT = Signature(1, 6513, 7443, 6978, 1111, 1431, 1271, 2.2, 0)
-LIME = Signature(2, -6249, -5385, -5817, -3721, -3023, -3372, 2.5, 0)
-LEMON = Signature(3, 2607, 3087, 2846, -3461, -3199, -3330, 2.5, 0)
-ORANGE_FRUIT = Signature(4, 7581, 8071, 7826, -2049, -1809, -1929, 2.5, 0)
+GRAPEFRUIT = Signature(1, 6513, 7443, 6978, 1111, 1431, 1271, sensitivity, 0)
+LIME = Signature(2, -6249, -5385, -5817, -3721, -3023, -3372, sensitivity, 0)
+LEMON = Signature(3, 2607, 3087, 2846, -3461, -3199, -3330, sensitivity, 0)
+ORANGE_FRUIT = Signature(4, 7581, 8071, 7826, -2049, -1809, -1929, sensitivity, 0)
 COLORS = [GRAPEFRUIT, LIME, LEMON, ORANGE_FRUIT]
 COLOR_STRINGS = ["GRAPEFRUIT", "LIME", "LEMON", "ORANGE"]
 
@@ -28,12 +30,20 @@ left_motor = Motor(Ports.PORT15, GearSetting.RATIO_18_1, False)
 right_motor = Motor(Ports.PORT21, GearSetting.RATIO_18_1, True)
 arm_motor = Motor(Ports.PORT20, GearSetting.RATIO_18_1, False)
 
-button = Bumper(brain.three_wire_port.e)
+button = Bumper(brain.three_wire_port.b)
 
 ROBOT_IDLE = 0 
 ROBOT_DETECTION = 1
 
 state = ROBOT_IDLE
+
+def testColor():
+	brain.screen.clear_screen()
+	determineColor()
+	wait(200)
+	brain.screen.print_at("Press again.", x=50, y=50)
+
+button.pressed(testColor)
 
 def ButtonPress():
 	global state 
@@ -45,7 +55,7 @@ def ButtonPress():
 		fruit_stats = determineFruit(objects[0])
 		(distance_x, distance_y) = calculateDistance(objects[0], fruit_stats[0], fruit_stats[1])
 		
-	else: 
+	else:
 		brain.screen.print_at('-> IDLE', x=50, y=50)
 		left_motor.stop()
 		right_motor.stop()
@@ -61,7 +71,8 @@ def determineColor() -> Tuple[VisionObject]:
 			brain.screen.print_at("Color: " + COLOR_STRINGS[i], x=50, y=100)
 			return objects
 
-	raise Exception("No fruit found.")
+	brain.screen.print_at("No fruit found.", x=50, y=100)
+	exit(0)
 
 # NOTE: all measurements are in MM!
 
