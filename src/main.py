@@ -39,14 +39,10 @@ ROBOT_DETECTION = 1
 
 state = ROBOT_IDLE
 
-def test():
-	brain.screen.clear_screen()
-	if not touchFruit(): # confirm driving was successful
-		Exception("Drive Failed.")
-	brain.screen.print_at("Out", x=50, y=50)
+test_color = "ORANGE"
 
 def ButtonPress():
-	global state 
+	global state
 	global objects
 	if(state == ROBOT_IDLE):
 		brain.screen.print_at('IDLE -> DETECTION', x=50, y=50)
@@ -60,6 +56,7 @@ def ButtonPress():
 		brain.screen.print_at('-> IDLE', x=50, y=50)
 		left_motor.stop()
 		right_motor.stop()
+		state = ROBOT_IDLE
 
 button.pressed(ButtonPress)
 
@@ -76,15 +73,16 @@ def determineColor(color: str) -> Tuple[VisionObject, str]:
 	fake_object: VisionObject = VisionObject()
 	return (fake_object, "null")
 
+tolerance: float = 10
 # returns the x and y distance away from the camera
 def centerFruit() -> str: ## this code doesn't do anything with the objects here, but you could
 	left_motor.set_velocity(50, RPM)
 	right_motor.set_velocity(50, RPM)
 
 	cx: float = 0
-	tolerance: float = 2 # can change this value as necessary
+	global tolerance
 	while True:
-		fruit_object, fruit_color = determineColor("GRAPEFRUIT")
+		fruit_object, fruit_color = determineColor(test_color)
 		
 		if not fruit_color == "null":
 			cx = fruit_object.centerX - 158
@@ -92,7 +90,8 @@ def centerFruit() -> str: ## this code doesn't do anything with the objects here
 		if fruit_color == "null":
 			left_motor.stop()
 			right_motor.stop()
-		elif fruit_object.width < 10 or cx > tolerance:
+			return fruit_color
+		elif cx > tolerance:
 			left_motor.spin(REVERSE)
 			right_motor.spin(FORWARD)
 		elif cx < -tolerance:
@@ -106,8 +105,12 @@ def centerFruit() -> str: ## this code doesn't do anything with the objects here
 # NOTE: all measurements are in CM!
 
 focal_length: float = 134.44 # F = D * P / W, or the focal length is the distance * pixels / actual width
+CENTER: int = 0
+DRIVE: int = 1
 
-def foundObject(fruit_color) -> bool:
+def foundObject(fruit_color: str) -> bool:
+	if not fruit_color in COLOR_STRINGS:
+		return False
 	objects: Tuple[VisionObject] = camera.take_snapshot(COLORS[COLOR_STRINGS.index(fruit_color)], 1)
 	if objects:
 		brain.screen.print_at("Color: " + fruit_color + ".     ", x=50, y=100)
@@ -115,18 +118,39 @@ def foundObject(fruit_color) -> bool:
 	brain.screen.print_at("No fruit found.   ", x=50, y=100)
 	return False
 
+def checkCentered(fruit_color: str) -> bool:
+	if not fruit_color in COLOR_STRINGS:
+		return False
+	objects: Tuple[VisionObject] = camera.take_snapshot(COLORS[COLOR_STRINGS.index(fruit_color)], 1)
+	if not objects:
+		return False
+	fruit_object: VisionObject = objects[0]
+	cx: int = fruit_object.centerX - 158
+	global tolerance
+	
+	if cx > tolerance or cx < -tolerance:
+		return False
+	return True
+
 wheel_diameter: float = 10
 def driveToFruit() -> str:
+	drive_state = CENTER
 	fruit_color = centerFruit()
-	count = 0
+	if not foundObject(fruit_color):
+		drive_motors.spin_for(FORWARD, 540 * 2, DEGREES, 100, RPM)
 	while foundObject(fruit_color):
-		drive_motors.spin_for(FORWARD, 180, DEGREES, 100, RPM)
-		wait(200)
-		if not foundObject(fruit_color):
-			break
-		count += 1
-		brain.screen.print_at(count, x=50, y=150)
-		centerFruit()
+		if drive_state == CENTER:
+			brain.screen.print_at("Centering", x=50, y=150)
+			centerFruit()
+			brain.screen.print_at("Centered ", x=50, y=150)
+			drive_state = DRIVE
+		elif drive_state == DRIVE:
+			drive_motors.spin(FORWARD, 100, RPM)
+			if not foundObject(fruit_color):
+				break
+			wait(250)
+			if not checkCentered(fruit_color):
+				drive_state = CENTER
 	return fruit_color
 
 possible_heights: list[float] = [1.7, 2.9, 3.8]
@@ -143,9 +167,13 @@ def determineHeight(fruit_object: VisionObject) -> float: # not needed for these
 	return 0
 
 def touchFruit() -> bool: # currently not final product, merely temporary for test
-	drive_motors.spin_for(REVERSE, 360, DEGREES)
-	arm_motor.spin_for(FORWARD, 180 * 4, DEGREES)
-	arm_motor.spin_for(REVERSE, 180 * 4, DEGREES)
+	arm_motor.set_velocity(150, RPM)
+	drive_motors.spin_for(REVERSE, 810, DEGREES)
+	centerFruit()
+	arm_motor.spin_for(FORWARD, 210 * 4, DEGREES)
+	drive_motors.spin_for(FORWARD, 630, DEGREES)
+	drive_motors.spin_for(REVERSE, 720, DEGREES)
+	arm_motor.spin_for(REVERSE, 210 * 4, DEGREES)
 	return True
 
 camera_to_arm_base: float = 4.5 # the vertical distance from camera to arm base
