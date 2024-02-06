@@ -27,8 +27,10 @@ COLOR_STRINGS = ["GRAPEFRUIT", "LIME", "LEMON", "ORANGE"]
 camera = Vision(Ports.PORT10, 43, GRAPEFRUIT, LIME, LEMON, ORANGE_FRUIT)
 
 left_motor = Motor(Ports.PORT15, GearSetting.RATIO_18_1, False)
-right_motor = Motor(Ports.PORT21, GearSetting.RATIO_18_1, True)
-arm_motor = Motor(Ports.PORT20, GearSetting.RATIO_18_1, False)
+right_motor = Motor(Ports.PORT11, GearSetting.RATIO_18_1, True)
+drive_motors = MotorGroup(left_motor, right_motor)
+
+arm_motor = Motor(Ports.PORT20, GearSetting.RATIO_18_1, True)
 
 button = Bumper(brain.three_wire_port.b)
 
@@ -37,13 +39,11 @@ ROBOT_DETECTION = 1
 
 state = ROBOT_IDLE
 
-def testColor():
+def test():
 	brain.screen.clear_screen()
-	determineColor()
-	wait(200)
-	brain.screen.print_at("Press again.", x=50, y=50)
-
-button.pressed(testColor)
+	if not touchFruit(): # confirm driving was successful
+		Exception("Drive Failed.")
+	brain.screen.print_at("Out", x=50, y=50)
 
 def ButtonPress():
 	global state 
@@ -51,49 +51,102 @@ def ButtonPress():
 	if(state == ROBOT_IDLE):
 		brain.screen.print_at('IDLE -> DETECTION', x=50, y=50)
 		state = ROBOT_DETECTION
-		objects = determineColor()
-		fruit_stats = determineFruit(objects[0])
-		(distance_x, distance_y) = calculateDistance(objects[0], fruit_stats[0], fruit_stats[1])
-		
+		fruit_color = driveToFruit()
+		# fruit_height = determineHeight(fruit_object)
+		if not touchFruit(): # confirm motions were successful
+			Exception("Arm Failed.")
+		brain.screen.print_at("Touched the " + fruit_color, x=50, y=150)
 	else:
 		brain.screen.print_at('-> IDLE', x=50, y=50)
 		left_motor.stop()
 		right_motor.stop()
 
+button.pressed(ButtonPress)
 
 sleep(20)
 
 # returns the objects of the fruit, and displays the color on the screen
-def determineColor() -> Tuple[VisionObject]:
-	for i in range(len(COLORS)):
-		objects: Tuple[VisionObject] = camera.take_snapshot(COLORS[i], 1)
-		if objects:
-			brain.screen.print_at("Color: " + COLOR_STRINGS[i], x=50, y=100)
-			return objects
+def determineColor(color: str) -> Tuple[VisionObject, str]:
+	objects: Tuple[VisionObject] = camera.take_snapshot(COLORS[COLOR_STRINGS.index(color)], 1)
+	if objects:
+		brain.screen.print_at("Color: " + color + ".     ", x=50, y=100)
+		return (objects[0], color)
 
-	brain.screen.print_at("No fruit found.", x=50, y=100)
-	exit(0)
-
-# NOTE: all measurements are in MM!
-
-fruit_length: int = 0
-possible_widths = [5.5, 9]
-possible_heights = [17, 29, 38]
-
-# returns the width of the fruit (of 2 options) and height off the ground (of 3 options). length is defined below
-def determineFruit(fruit_object: VisionObject) -> Tuple[int, int]:
-	width = 0
-	height = 0
-
-	return (width, height)
+	brain.screen.print_at("No fruit found.   ", x=50, y=100)
+	fake_object: VisionObject = VisionObject()
+	return (fake_object, "null")
 
 # returns the x and y distance away from the camera
-def calculateDistance(fruit_object: VisionObject, fruit_width: int, fruit_height: int) -> Tuple[int, int]: ## this code doesn't do anything with the objects here, but you could
-	cx = fruit_object.centerX
-	cy = fruit_object.centerY
-	print(cx, cy)
+def centerFruit() -> str: ## this code doesn't do anything with the objects here, but you could
+	left_motor.set_velocity(50, RPM)
+	right_motor.set_velocity(50, RPM)
 
-	distance_x = 0
-	distance_y = 0
+	cx: float = 0
+	tolerance: float = 2 # can change this value as necessary
+	while True:
+		fruit_object, fruit_color = determineColor("GRAPEFRUIT")
+		
+		if not fruit_color == "null":
+			cx = fruit_object.centerX - 158
+		
+		if fruit_color == "null":
+			left_motor.stop()
+			right_motor.stop()
+		elif fruit_object.width < 10 or cx > tolerance:
+			left_motor.spin(REVERSE)
+			right_motor.spin(FORWARD)
+		elif cx < -tolerance:
+			left_motor.spin(FORWARD)
+			right_motor.spin(REVERSE)
+		else:
+			left_motor.stop()
+			right_motor.stop()
+			return fruit_color
 
-	return (distance_x, distance_y)
+# NOTE: all measurements are in CM!
+
+focal_length: float = 134.44 # F = D * P / W, or the focal length is the distance * pixels / actual width
+
+def foundObject(fruit_color) -> bool:
+	objects: Tuple[VisionObject] = camera.take_snapshot(COLORS[COLOR_STRINGS.index(fruit_color)], 1)
+	if objects:
+		brain.screen.print_at("Color: " + fruit_color + ".     ", x=50, y=100)
+		return True
+	brain.screen.print_at("No fruit found.   ", x=50, y=100)
+	return False
+
+wheel_diameter: float = 10
+def driveToFruit() -> str:
+	fruit_color = centerFruit()
+	count = 0
+	while foundObject(fruit_color):
+		drive_motors.spin_for(FORWARD, 180, DEGREES, 100, RPM)
+		wait(200)
+		if not foundObject(fruit_color):
+			break
+		count += 1
+		brain.screen.print_at(count, x=50, y=150)
+		centerFruit()
+	return fruit_color
+
+possible_heights: list[float] = [1.7, 2.9, 3.8]
+def determineHeight(fruit_object: VisionObject) -> float: # not needed for these tests
+	cy = fruit_object.height
+
+	if cy > 0 and cy < 0: # TODO: set values
+		return possible_heights[0]
+	elif cy > 0 and cy < 0: # TODO: set values
+		return possible_heights[1]
+	elif cy > 0 and cy < 0: # TODO: set values
+		return possible_heights[2]
+
+	return 0
+
+def touchFruit() -> bool: # currently not final product, merely temporary for test
+	drive_motors.spin_for(REVERSE, 360, DEGREES)
+	arm_motor.spin_for(FORWARD, 180 * 4, DEGREES)
+	arm_motor.spin_for(REVERSE, 180 * 4, DEGREES)
+	return True
+
+camera_to_arm_base: float = 4.5 # the vertical distance from camera to arm base
+arm_length: float = 21 # the length of the arm
