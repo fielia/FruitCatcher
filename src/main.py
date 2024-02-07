@@ -39,7 +39,7 @@ ROBOT_DETECTION = 1
 
 state = ROBOT_IDLE
 
-test_color = "ORANGE"
+test_color = "LEMON"
 
 def ButtonPress():
 	global state
@@ -153,7 +153,7 @@ def driveToFruit() -> str:
 				drive_state = CENTER
 	return fruit_color
 
-possible_heights: list[float] = [1.7, 2.9, 3.8]
+possible_heights: list[float] = [17, 29, 38]
 def determineHeight(fruit_object: VisionObject) -> float: # not needed for these tests
 	cy = fruit_object.height
 
