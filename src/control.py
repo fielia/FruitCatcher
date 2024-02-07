@@ -12,7 +12,7 @@ def move_drive(speed: int = 100) -> tuple[int, int]:
 	return (left_stick[0].position() * speed, left_stick[1].position() * speed)
 
 def rotate_drive(speed: int = 100) -> int:
-	return right_stick[1].position() * speed
+	return right_stick[0].position() * speed
 
 def rotate_arm(speed: int = 100) -> int:
 	if left_bumper.pressing():
