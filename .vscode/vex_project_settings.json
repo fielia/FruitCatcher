@@ -12,7 +12,8 @@
 		"slot": 1,
 		"sdkVersion": "V5_1_0_1_15",
 		"python": {
-			"main": "src/main.py"
+			"main": "src/main.py",
+			"control": "src/control.py"
 		}
 	}
 }
