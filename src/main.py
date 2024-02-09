@@ -13,8 +13,8 @@ from vex import *
 
 controller: Controller = Controller()
 
-left_stick: list[Controller.Axis] = [controller.axis1, controller.axis2]
-right_stick: list[Controller.Axis] = [controller.axis3, controller.axis4]
+left_stick: list[Controller.Axis] = [controller.axis4, controller.axis3]
+right_stick: list[Controller.Axis] = [controller.axis1, controller.axis2]
 left_bumper: Controller.Button = controller.buttonL1
 right_bumper: Controller.Button = controller.buttonR1
 left_trigger: Controller.Button = controller.buttonL2
@@ -64,8 +64,8 @@ range_finder = Sonar(brain.three_wire_port.e) # NOTE: has a range of 30 to 3000 
 
 def activate_control():
 	while True:
-		forward_speed, right_speed = move_drive(5)
-		spin_speed: int = rotate_drive(5)
+		forward_speed, right_speed = move_drive(1)
+		spin_speed: int = rotate_drive(1)
 		northwest_motor.spin(FORWARD, forward_speed + right_speed + spin_speed, RPM)
 		northeast_motor.spin(FORWARD, forward_speed - right_speed + spin_speed, RPM)
 		southwest_motor.spin(FORWARD, forward_speed - right_speed - spin_speed, RPM)
