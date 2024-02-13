@@ -9,9 +9,9 @@
 
 # Library imports
 from vex import *
-#from control import move_drive, rotate_drive, rotate_arm, move_claw
+# from control import move_drive, rotate_drive, rotate_arm, move_claw
 
-# Brain should be defined by default
+# variable declaration
 brain = Brain()
 
 # motor names are based on top-down view with proper orientation
@@ -30,6 +30,7 @@ imu = Inertial(Ports.PORT20)
 button = Bumper(brain.three_wire_port.d)
 range_finder = Sonar(brain.three_wire_port.e) # NOTE: has a range of 30 to 3000 MM
 
+# test function (runs teleoperation)
 def activate_control():
 	while True:
 		forward_speed, right_speed = move_drive(25)
@@ -93,4 +94,6 @@ def toggleDoor(speed: int = 100):
 	else:
 		return 0
 
+# initialize testing (will be triggered with button press and pre-run checks will be run here)
+brain.screen.print("Teleop Activated")
 activate_control()

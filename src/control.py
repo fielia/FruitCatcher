@@ -1,3 +1,6 @@
+# this code is identical to the code at the bottom of main.py
+# if changes are needed, this file must also be updated (recommended that this file changes first, then copied to main.py)
+
 from vex import Controller
 controller: Controller = Controller()
 # sticks
