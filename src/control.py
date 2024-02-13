@@ -14,7 +14,10 @@ right_trigger: Controller.Button = controller.buttonR2
 # face buttons
 a_button: Controller.Button = controller.buttonA
 b_button: Controller.Button = controller.buttonB
-
+# function-specific fields
+arm_displacement: int = 0 # arm displacement
+MAX_ARM_DISPLACEMENT: int = 50 # maximum arm displacement before the arm comes off the track
+ARM_DISPLACEMENT_ERROR: int = 5 # error in the limits for arm displacement
 door_open: bool = False # closed = false, open = true
 
 def move_drive(speed: int = 100) -> tuple[int, int]:
@@ -23,10 +26,10 @@ def move_drive(speed: int = 100) -> tuple[int, int]:
 def rotate_drive(speed: int = 100) -> int:
 	return right_stick[0].position() * speed
 
-def rotate_arm(speed: int = 100) -> int:
-	if left_bumper.pressing():
+def move_arm(speed: int = 100) -> int:
+	if left_bumper.pressing() and arm_displacement < MAX_ARM_DISPLACEMENT - ARM_DISPLACEMENT_ERROR:
 		return speed
-	elif right_bumper.pressing():
+	elif right_bumper.pressing() and arm_displacement > ARM_DISPLACEMENT_ERROR:
 		return -speed
 	else:
 		return 0
