@@ -44,7 +44,7 @@ def activate_control():
 		arm_motor.spin(FORWARD, move_arm(), RPM)
 		claw_motor.spin(FORWARD, move_claw(), RPM)
 		door_motor.spin_for(FORWARD, 75 * 5, DEGREES, toggleDoor(), RPM, False)
-		if button.pressing():
+		if button.pressing() or kill():
 			break
 
 # CODE FROM CONTROL.PY
@@ -61,6 +61,8 @@ right_trigger: Controller.Button = controller.buttonR2
 # face buttons
 a_button: Controller.Button = controller.buttonA
 b_button: Controller.Button = controller.buttonB
+y_button: Controller.Button = controller.buttonY
+down_button: Controller.Button = controller.buttonDown
 # function-specific fields
 arm_displacement: int = 0 # arm displacement
 MAX_ARM_DISPLACEMENT: int = 50 # maximum arm displacement before the arm comes off the track
@@ -81,7 +83,7 @@ def move_arm(speed: int = 100) -> int:
 	else:
 		return 0
 
-def move_claw(speed: int = 100):
+def move_claw(speed: int = 100) -> int:
 	if left_trigger.pressing():
 		return speed
 	elif right_trigger.pressing():
@@ -90,7 +92,7 @@ def move_claw(speed: int = 100):
 		return 0
 
 # MAKE SURE THIS IS CALLED IN A SPIN_FOR
-def toggleDoor(speed: int = 100):
+def toggleDoor(speed: int = 100) -> int:
 	global door_open
 	if a_button.pressing() and not door_open:
 		door_open = True
@@ -100,6 +102,9 @@ def toggleDoor(speed: int = 100):
 		return -speed
 	else:
 		return 0
+
+def kill() -> bool:
+	return y_button.pressing() and down_button.pressing()
 
 # initialize testing (will be triggered with button press and pre-run checks will be run here)
 brain.screen.print("Teleop Activated")
