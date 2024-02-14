@@ -32,18 +32,22 @@ range_finder = Sonar(brain.three_wire_port.e) # NOTE: has a range of 30 to 3000 
 
 # test function (runs teleoperation)
 def activate_control():
-	while button.pressing():
-		wait(5)
+	#while button.pressing():
+	#	wait(5)
 	while True:
-		forward_speed, right_speed = move_drive(25)
-		spin_speed: int = rotate_drive(25)
+		global door_opening
+
+		forward_speed, right_speed = move_drive(1)
+		spin_speed: float = rotate_drive(0.5)
 		northwest_motor.spin(FORWARD, forward_speed + right_speed + spin_speed, RPM)
 		northeast_motor.spin(FORWARD, forward_speed - right_speed + spin_speed, RPM)
 		southwest_motor.spin(FORWARD, forward_speed - right_speed - spin_speed, RPM)
 		southeast_motor.spin(FORWARD, forward_speed + right_speed - spin_speed, RPM)
-		arm_motor.spin(FORWARD, move_arm(), RPM)
-		claw_motor.spin(FORWARD, move_claw(), RPM)
-		door_motor.spin_for(FORWARD, 75 * 5, DEGREES, toggleDoor(), RPM, False)
+		arm_motor.spin(FORWARD, move_arm(75), RPM)
+		claw_motor.spin(FORWARD, move_claw(30), RPM)
+		door_motor.spin_for(FORWARD, toggleDoor(360), DEGREES, 75, RPM, False)
+		if not door_motor.is_spinning():
+			door_opening = False
 		if button.pressing() or kill():
 			break
 
@@ -55,56 +59,67 @@ left_stick: list[Controller.Axis] = [controller.axis4, controller.axis3] # x, y
 right_stick: list[Controller.Axis] = [controller.axis1, controller.axis2] # x, y
 # top buttons
 left_bumper: Controller.Button = controller.buttonL1
-right_bumper: Controller.Button = controller.buttonR1
 left_trigger: Controller.Button = controller.buttonL2
+right_bumper: Controller.Button = controller.buttonR1
 right_trigger: Controller.Button = controller.buttonR2
 # face buttons
 a_button: Controller.Button = controller.buttonA
 b_button: Controller.Button = controller.buttonB
+x_button: Controller.Button = controller.buttonX
 y_button: Controller.Button = controller.buttonY
+up_button: Controller.Button = controller.buttonUp
 down_button: Controller.Button = controller.buttonDown
+right_button: Controller.Button = controller.buttonRight
 # function-specific fields
 arm_displacement: int = 0 # arm displacement
 MAX_ARM_DISPLACEMENT: int = 50 # maximum arm displacement before the arm comes off the track
 ARM_DISPLACEMENT_ERROR: int = 5 # error in the limits for arm displacement
-door_open: bool = False # closed = false, open = true
+door_opening: bool = False # closing = false, opening = true
 
-def move_drive(speed: int = 100) -> tuple[int, int]:
+def move_drive(speed: float = 100) -> tuple[float, float]:
 	return (left_stick[0].position() * speed, left_stick[1].position() * speed)
 
-def rotate_drive(speed: int = 100) -> int:
+def rotate_drive(speed: float = 100) -> float:
 	return right_stick[0].position() * speed
 
 def move_arm(speed: int = 100) -> int:
-	if left_bumper.pressing() and arm_displacement < MAX_ARM_DISPLACEMENT - ARM_DISPLACEMENT_ERROR:
+	if right_trigger.pressing():# and arm_displacement < MAX_ARM_DISPLACEMENT - ARM_DISPLACEMENT_ERROR:
 		return speed
-	elif right_bumper.pressing() and arm_displacement > ARM_DISPLACEMENT_ERROR:
+	elif right_bumper.pressing():# and arm_displacement > ARM_DISPLACEMENT_ERROR:
 		return -speed
 	else:
 		return 0
 
-def move_claw(speed: int = 100) -> int:
-	if left_trigger.pressing():
+def move_claw(speed: int = 50) -> int:
+	if down_button.pressing():
 		return speed
-	elif right_trigger.pressing():
+	elif up_button.pressing():
 		return -speed
 	else:
 		return 0
 
 # MAKE SURE THIS IS CALLED IN A SPIN_FOR
-def toggleDoor(speed: int = 100) -> int:
-	global door_open
-	if a_button.pressing() and not door_open:
-		door_open = True
-		return speed
-	elif b_button.pressing() and door_open:
-		door_open = False
-		return -speed
+def toggleDoor(angle: int = 90) -> int:
+	global door_opening
+	if a_button.pressing() and not door_opening:
+		door_opening = True
+		zero_position: vexnumber = 0
+		door_motor.set_position(zero_position, DEGREES)
+		return angle
+	elif x_button.pressing() and not door_opening:
+		door_opening = True
+		zero_position: vexnumber = 0
+		door_motor.set_position(zero_position, DEGREES)
+		return -angle
+	elif b_button.pressing() and door_opening:
+		door_motor.stop()
+		door_motor.spin_to_position(0)
+		return 0
 	else:
 		return 0
 
 def kill() -> bool:
-	return y_button.pressing() and down_button.pressing()
+	return y_button.pressing() and right_button.pressing()
 
 # initialize testing (will be triggered with button press and pre-run checks will be run here)
 brain.screen.print("Teleop Activated")
