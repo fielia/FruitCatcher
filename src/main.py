@@ -44,8 +44,11 @@ def activate_control():
 		southwest_motor.spin(FORWARD, forward_speed - right_speed - spin_speed, RPM)
 		southeast_motor.spin(FORWARD, forward_speed + right_speed - spin_speed, RPM)
 		arm_motor.spin(FORWARD, move_arm(75), RPM)
-		claw_motor.spin(FORWARD, move_claw(30), RPM)
 		door_motor.spin_for(FORWARD, toggleDoor(360), DEGREES, 75, RPM, False)
+		if squeeze():
+			claw_motor.spin(FORWARD, 5, RPM)
+		else:
+			claw_motor.spin(FORWARD, move_claw(30), RPM)
 		if not door_motor.is_spinning():
 			door_opening = False
 		if button.pressing() or kill():
@@ -74,6 +77,7 @@ right_button: Controller.Button = controller.buttonRight
 arm_displacement: int = 0 # arm displacement
 MAX_ARM_DISPLACEMENT: int = 50 # maximum arm displacement before the arm comes off the track
 ARM_DISPLACEMENT_ERROR: int = 5 # error in the limits for arm displacement
+squeeze_state: bool = False # squeezing
 door_opening: bool = False # closing = false, opening = true
 
 def move_drive(speed: float = 100) -> tuple[float, float]:
@@ -97,6 +101,17 @@ def move_claw(speed: int = 50) -> int:
 		return -speed
 	else:
 		return 0
+
+def squeeze() -> bool:
+	global squeeze_state
+	if left_bumper.pressing() and not squeeze_state:
+		squeeze_state = True
+		return True
+	elif left_trigger.pressing() and squeeze_state:
+		squeeze_state = False
+		return False
+	else:
+		return squeeze_state
 
 # MAKE SURE THIS IS CALLED IN A SPIN_FOR
 def toggleDoor(angle: int = 90) -> int:
