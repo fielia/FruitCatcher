@@ -22,7 +22,9 @@ southeast_motor: Motor = Motor(Ports.PORT10, 0.2, True) # set boolean so motor s
 negative_motors: MotorGroup = MotorGroup(northwest_motor, southeast_motor) # the motors on the negative diagonal
 positive_motors: MotorGroup = MotorGroup(northeast_motor, southwest_motor) # the motors on the positive diagonal
 
-arm_motor = Motor(Ports.PORT18, 0.2, True)
+arm_motor_1 = Motor(Ports.PORT18, 0.2, True)
+arm_motor_2 = Motor(Ports.PORT14, 0.2, True)
+arm_motors = MotorGroup(arm_motor_1, arm_motor_2)
 claw_motor = Motor(Ports.PORT12, 0.2, True)
 door_motor = Motor(Ports.PORT1, 0.2, True)
 imu = Inertial(Ports.PORT20)
@@ -32,106 +34,52 @@ range_finder = Sonar(brain.three_wire_port.e) # NOTE: has a range of 30 to 3000 
 
 # test function (runs teleoperation)
 def activate_control():
-	#while button.pressing():
-	#	wait(5)
-	while True:
-		global door_opening
-
-		forward_speed, right_speed = move_drive(1)
-		spin_speed: float = rotate_drive(0.5)
-		northwest_motor.spin(FORWARD, forward_speed + right_speed + spin_speed, RPM)
-		northeast_motor.spin(FORWARD, forward_speed - right_speed + spin_speed, RPM)
-		southwest_motor.spin(FORWARD, forward_speed - right_speed - spin_speed, RPM)
-		southeast_motor.spin(FORWARD, forward_speed + right_speed - spin_speed, RPM)
-		arm_motor.spin(FORWARD, move_arm(75), RPM)
-		door_motor.spin_for(FORWARD, toggleDoor(360), DEGREES, 75, RPM, False)
-		if squeeze():
-			claw_motor.spin(FORWARD, 5, RPM)
-		else:
-			claw_motor.spin(FORWARD, move_claw(30), RPM)
-		if not door_motor.is_spinning():
-			door_opening = False
-		if button.pressing() or kill():
-			break
+	while button.pressing():
+		wait(5)
+	drive(100, 0, 0)
+	move_arm(5)
+	move_claw(10)
+	move_claw(0, stall=False)
+	move_arm(0, stall=False)
+	drive(-100, 0, 0)
 
 # CODE FROM CONTROL.PY
 
 controller: Controller = Controller()
-# sticks
-left_stick: list[Controller.Axis] = [controller.axis4, controller.axis3] # x, y
-right_stick: list[Controller.Axis] = [controller.axis1, controller.axis2] # x, y
-# top buttons
-left_bumper: Controller.Button = controller.buttonL1
-left_trigger: Controller.Button = controller.buttonL2
-right_bumper: Controller.Button = controller.buttonR1
-right_trigger: Controller.Button = controller.buttonR2
 # face buttons
-a_button: Controller.Button = controller.buttonA
-b_button: Controller.Button = controller.buttonB
-x_button: Controller.Button = controller.buttonX
 y_button: Controller.Button = controller.buttonY
-up_button: Controller.Button = controller.buttonUp
-down_button: Controller.Button = controller.buttonDown
 right_button: Controller.Button = controller.buttonRight
-# function-specific fields
-arm_displacement: int = 0 # arm displacement
-MAX_ARM_DISPLACEMENT: int = 50 # maximum arm displacement before the arm comes off the track
-ARM_DISPLACEMENT_ERROR: int = 5 # error in the limits for arm displacement
-squeeze_state: bool = False # squeezing
-door_opening: bool = False # closing = false, opening = true
 
-def move_drive(speed: float = 100) -> tuple[float, float]:
-	return (left_stick[0].position() * speed, left_stick[1].position() * speed)
+def drive(distance_x: float, distance_y: float, rotation_angle: float, speed: float = 40, stall: bool = True):
+	wheel_diameter: float = 0
+	degrees_x: float = distance_x / (wheel_diameter * math.pi) * 360
+	degrees_y: float = distance_y / (wheel_diameter * math.pi) * 360
+	degrees_r: float = distance_x / (wheel_diameter * math.pi) * 360 # need to solve
 
-def rotate_drive(speed: float = 100) -> float:
-	return right_stick[0].position() * speed
+	northwest_motor.spin_for(FORWARD, degrees_x + degrees_y + degrees_r, DEGREES, speed, RPM, wait=False)
+	northeast_motor.spin_for(FORWARD, degrees_x - degrees_y + degrees_r, DEGREES, speed, RPM, wait=False)
+	southwest_motor.spin_for(FORWARD, degrees_x - degrees_y - degrees_r, DEGREES, speed, RPM, wait=False)
+	southeast_motor.spin_for(FORWARD, degrees_x + degrees_y - degrees_r, DEGREES, speed, RPM, wait=stall)
+		
 
-def move_arm(speed: int = 100) -> int:
-	if right_trigger.pressing():# and arm_displacement < MAX_ARM_DISPLACEMENT - ARM_DISPLACEMENT_ERROR:
-		return speed
-	elif right_bumper.pressing():# and arm_displacement > ARM_DISPLACEMENT_ERROR:
-		return -speed
-	else:
-		return 0
+def move_arm(end_position: float, speed: float = 75, stall: bool = True):
+	arm_motors.spin_to_position(end_position, DEGREES, speed, RPM, wait=stall)
 
-def move_claw(speed: int = 50) -> int:
-	if down_button.pressing():
-		return speed
-	elif up_button.pressing():
-		return -speed
-	else:
-		return 0
+def move_claw(end_position: float, speed: int = 50, stall: bool = True):
+	claw_motor.spin_to_position(end_position, DEGREES, speed, RPM, wait=stall)
 
-def squeeze() -> bool:
-	global squeeze_state
-	if left_bumper.pressing() and not squeeze_state:
-		squeeze_state = True
-		return True
-	elif left_trigger.pressing() and squeeze_state:
-		squeeze_state = False
-		return False
-	else:
-		return squeeze_state
+def squeeze():
+	claw_motor.spin(FORWARD, 5, RPM)
 
-# MAKE SURE THIS IS CALLED IN A SPIN_FOR
-def toggleDoor(angle: int = 90) -> int:
-	global door_opening
-	if a_button.pressing() and not door_opening:
-		door_opening = True
-		zero_position: vexnumber = 0
-		door_motor.set_position(zero_position, DEGREES)
-		return angle
-	elif x_button.pressing() and not door_opening:
-		door_opening = True
-		zero_position: vexnumber = 0
-		door_motor.set_position(zero_position, DEGREES)
-		return -angle
-	elif b_button.pressing() and door_opening:
-		door_motor.stop()
+# outwards: 1 = spin out, -1 = spin in
+def toggleDoor(angle: int = 360, outwards: int = 0, speed: float = 75, stall: bool = True):
+	zero_position: vexnumber = 0
+	door_motor.set_position(zero_position, DEGREES)
+	door_motor.spin_for(FORWARD, outwards * angle, DEGREES, speed, RPM, wait=stall)
+	wait(200)
+	if door_motor.is_spinning():
 		door_motor.spin_to_position(0)
-		return 0
-	else:
-		return 0
+		toggleDoor(angle, outwards, speed)
 
 def kill() -> bool:
 	return y_button.pressing() and right_button.pressing()
