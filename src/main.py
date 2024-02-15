@@ -30,6 +30,7 @@ door_motor = Motor(Ports.PORT1, 0.2, True)
 imu = Inertial(Ports.PORT20)
 
 button = Bumper(brain.three_wire_port.d)
+e_stop = Bumper(brain.three_wire_port.c)
 front_range_finder = Sonar(brain.three_wire_port.e) # NOTE: has a range of 30 to 3000 MM
 left_range_finder = Sonar(brain.three_wire_port.g)
 
@@ -57,10 +58,11 @@ def drive_for(distance_x: float, distance_y: float, rotation_angle: float, speed
 	southeast_motor.spin_for(FORWARD, degrees_x + degrees_y - degrees_r, DEGREES, speed, RPM, wait=stall)
 
 def spin(forward: float, sideways: float, spin: float, speed: float = 40, stall: bool = True):
-	northwest_motor.spin_for(FORWARD, forward + sideways + spin, DEGREES, speed, RPM, wait=stall)
-	northeast_motor.spin_for(FORWARD, forward - sideways + spin, DEGREES, speed, RPM, wait=stall)
-	southwest_motor.spin_for(FORWARD, forward - sideways - spin, DEGREES, speed, RPM, wait=stall)
-	southeast_motor.spin_for(FORWARD, forward + sideways - spin, DEGREES, speed, RPM, wait=stall)		
+	# northwest_motor.spin()
+	northwest_motor.spin(FORWARD, forward + sideways + spin, RPM)
+	northeast_motor.spin(FORWARD, forward - sideways + spin, RPM)
+	southwest_motor.spin(FORWARD, forward - sideways - spin, RPM)
+	southeast_motor.spin(FORWARD, forward + sideways - spin, RPM)		
 
 def move_arm(end_position: float, speed: float = 75, stall: bool = True):
 	arm_motors.spin_to_position(end_position, DEGREES, speed, RPM, wait=stall)
@@ -81,61 +83,76 @@ def toggleDoor(angle: int = 360, outwards: int = 0, speed: float = 75, stall: bo
 		door_motor.spin_to_position(0)
 		toggleDoor(angle, outwards, speed)
 
-def kill() -> bool:
-	return y_button.pressing() and right_button.pressing()
-
 def start():
 	global bot_state
 	bot_state = DRIVE_TO_WALL
-	brain.screen.print("____ -> DRIVE_TO_WALL")
+	brain.screen.print("IDLE -> DRIVE_TO_WALL")
+
+def kill():
+	northeast_motor.stop(HOLD)
+	northwest_motor.stop(HOLD)
+	southeast_motor.stop(HOLD)
+	southwest_motor.stop(HOLD)
 
 def drive_to_wall():
 	global bot_state
 
 	dist = left_range_finder.distance(DistanceUnits.CM)
-
-	if dist>10:
+	print(dist)
+	if dist>15:
 		orientation = imu.rotation()
-		spin_error = orientation
-		spin(10, 0, spin_error)
+		spin_error = orientation*-0.2
+		error = dist*.75
+		spin(50+error, 0, spin_error)
 	else:
+		kill()
 		bot_state = FOLLOW_WALL
-		brain.screen.print("DRIVE_TO_WALL -> FOLLOW_WALL")
+		print("DRIVE_TO_WALL -> FOLLOW_WALL")
 
+past_side_dist = 0
 def follow_wall():
 	global bot_state
+	global past_side_dist
 
 	dist = front_range_finder.distance(DistanceUnits.CM)
 
 	if dist>20: # if we are not at the bins yet
 		orientation = imu.rotation()
-
-		if abs(orientation) < 3: # if we are pointing relatively forwards...
+		print(orientation)
+		if abs(orientation) < 10: # if we are pointing relatively forwards...
 			# adjust distance from the wall and keep going
-			spin_error = orientation
+			spin_error = orientation*-.2
 			side_dist = left_range_finder.distance(DistanceUnits.CM)
-			spin(0, 10, spin_error)
+			if abs(side_dist-past_side_dist) > 20:
+				side_dist = past_side_dist
+			else:
+				past_side_dist = side_dist
+			effort = side_dist - 18
+			spin(effort, -20, spin_error)
 		else: # if we are orientated the wrong way...
 			# spin to the correct orientation so that the sonar readings will be more accurate
+			spin_error = orientation
 			spin(0, 0, spin_error)
 
 	else:
 		bot_state = SCAN_FOR_BINS
-		brain.screen.print("FOLLOW_WALL -> SCAN_FOR_BINS")
+		print("FOLLOW_WALL -> SCAN_FOR_BINS")
 
 button.pressed(start)
+e_stop.pressed(kill)
 
-brain.screen.print("Calibrating...")
+print("Calibrating...")
 imu.calibrate()
-brain.screen.print("Robot Armed")
+print("Robot Armed")
 
 while True:
-	if bot_state == IDLE:
-		print("IDLE")
-	elif bot_state == DRIVE_TO_WALL:
+	#if bot_state == IDLE:
+		#print("IDLE")
+	if bot_state == DRIVE_TO_WALL:
 		drive_to_wall()
 	elif bot_state == FOLLOW_WALL:
 		follow_wall()
 	elif bot_state == SCAN_FOR_BINS:
 		print("DONE!")
+		kill()
 		sleep(1000)
