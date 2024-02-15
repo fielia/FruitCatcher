@@ -30,27 +30,22 @@ door_motor = Motor(Ports.PORT1, 0.2, True)
 imu = Inertial(Ports.PORT20)
 
 button = Bumper(brain.three_wire_port.d)
-range_finder = Sonar(brain.three_wire_port.e) # NOTE: has a range of 30 to 3000 MM
+front_range_finder = Sonar(brain.three_wire_port.e) # NOTE: has a range of 30 to 3000 MM
+left_range_finder = Sonar(brain.three_wire_port.g)
 
-# test function (runs teleoperation)
-def activate_control():
-	while button.pressing():
-		wait(5)
-	drive(100, 0, 0)
-	move_arm(5)
-	move_claw(10)
-	move_claw(0, stall=False)
-	move_arm(0, stall=False)
-	drive(-100, 0, 0)
+IDLE = 0
+DRIVE_TO_WALL = 1
+FOLLOW_WALL = 2
+SCAN_FOR_BINS = 3
+bot_state = IDLE
 
-# CODE FROM CONTROL.PY
 
 controller: Controller = Controller()
 # face buttons
 y_button: Controller.Button = controller.buttonY
 right_button: Controller.Button = controller.buttonRight
 
-def drive(distance_x: float, distance_y: float, rotation_angle: float, speed: float = 40, stall: bool = True):
+def drive_for(distance_x: float, distance_y: float, rotation_angle: float, speed: float = 40, stall: bool = True):
 	wheel_diameter: float = 0
 	degrees_x: float = distance_x / (wheel_diameter * math.pi) * 360
 	degrees_y: float = distance_y / (wheel_diameter * math.pi) * 360
@@ -60,7 +55,12 @@ def drive(distance_x: float, distance_y: float, rotation_angle: float, speed: fl
 	northeast_motor.spin_for(FORWARD, degrees_x - degrees_y + degrees_r, DEGREES, speed, RPM, wait=False)
 	southwest_motor.spin_for(FORWARD, degrees_x - degrees_y - degrees_r, DEGREES, speed, RPM, wait=False)
 	southeast_motor.spin_for(FORWARD, degrees_x + degrees_y - degrees_r, DEGREES, speed, RPM, wait=stall)
-		
+
+def spin(forward: float, sideways: float, spin: float, speed: float = 40, stall: bool = True):
+	northwest_motor.spin_for(FORWARD, forward + sideways + spin, DEGREES, speed, RPM, wait=stall)
+	northeast_motor.spin_for(FORWARD, forward - sideways + spin, DEGREES, speed, RPM, wait=stall)
+	southwest_motor.spin_for(FORWARD, forward - sideways - spin, DEGREES, speed, RPM, wait=stall)
+	southeast_motor.spin_for(FORWARD, forward + sideways - spin, DEGREES, speed, RPM, wait=stall)		
 
 def move_arm(end_position: float, speed: float = 75, stall: bool = True):
 	arm_motors.spin_to_position(end_position, DEGREES, speed, RPM, wait=stall)
@@ -84,6 +84,58 @@ def toggleDoor(angle: int = 360, outwards: int = 0, speed: float = 75, stall: bo
 def kill() -> bool:
 	return y_button.pressing() and right_button.pressing()
 
-# initialize testing (will be triggered with button press and pre-run checks will be run here)
-brain.screen.print("Teleop Activated")
-activate_control()
+def start():
+	global bot_state
+	bot_state = DRIVE_TO_WALL
+	brain.screen.print("____ -> DRIVE_TO_WALL")
+
+def drive_to_wall():
+	global bot_state
+
+	dist = left_range_finder.distance(DistanceUnits.CM)
+
+	if dist>10:
+		orientation = imu.rotation()
+		spin_error = orientation
+		spin(10, 0, spin_error)
+	else:
+		bot_state = FOLLOW_WALL
+		brain.screen.print("DRIVE_TO_WALL -> FOLLOW_WALL")
+
+def follow_wall():
+	global bot_state
+
+	dist = front_range_finder.distance(DistanceUnits.CM)
+
+	if dist>20: # if we are not at the bins yet
+		orientation = imu.rotation()
+
+		if abs(orientation) < 3: # if we are pointing relatively forwards...
+			# adjust distance from the wall and keep going
+			spin_error = orientation
+			side_dist = left_range_finder.distance(DistanceUnits.CM)
+			spin(0, 10, spin_error)
+		else: # if we are orientated the wrong way...
+			# spin to the correct orientation so that the sonar readings will be more accurate
+			spin(0, 0, spin_error)
+
+	else:
+		bot_state = SCAN_FOR_BINS
+		brain.screen.print("FOLLOW_WALL -> SCAN_FOR_BINS")
+
+button.pressed(start)
+
+brain.screen.print("Calibrating...")
+imu.calibrate()
+brain.screen.print("Robot Armed")
+
+while True:
+	if bot_state == IDLE:
+		print("IDLE")
+	elif bot_state == DRIVE_TO_WALL:
+		drive_to_wall()
+	elif bot_state == FOLLOW_WALL:
+		follow_wall()
+	elif bot_state == SCAN_FOR_BINS:
+		print("DONE!")
+		sleep(1000)
