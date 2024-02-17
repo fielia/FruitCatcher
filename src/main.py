@@ -28,6 +28,7 @@ arm_motors = MotorGroup(arm_motor_1, arm_motor_2)
 claw_motor = Motor(Ports.PORT12, 0.2, True)
 door_motor = Motor(Ports.PORT1, 0.2, True)
 imu = Inertial(Ports.PORT20)
+basket_sensor = DigitalIn(brain.three_wire_port.b)
 
 button = Bumper(brain.three_wire_port.d)
 e_stop = Bumper(brain.three_wire_port.c)
@@ -38,6 +39,7 @@ IDLE = 0
 DRIVE_TO_WALL = 1
 FOLLOW_WALL = 2
 SCAN_FOR_BINS = 3
+DONE = 4
 bot_state = IDLE
 
 
@@ -71,7 +73,7 @@ def move_claw(end_position: float, speed: int = 50, stall: bool = True):
 	claw_motor.spin_to_position(end_position, DEGREES, speed, RPM, wait=stall)
 
 def squeeze():
-	claw_motor.spin(FORWARD, 5, RPM)
+	claw_motor.spin_for(FORWARD, 30, DEGREES, 5, RPM)
 
 # outwards: 1 = spin out, -1 = spin in
 def toggleDoor(angle: int = 360, outwards: int = 0, speed: float = 75, stall: bool = True):
@@ -138,6 +140,15 @@ def follow_wall():
 		bot_state = SCAN_FOR_BINS
 		print("FOLLOW_WALL -> SCAN_FOR_BINS")
 
+def scan_for_bins():
+	global bot_state
+
+	if basket_sensor.value()<2850:
+		door_motor.spin_to_position(30, velocity=5)
+	else:
+		bot_state = DONE
+		print("SCAN_FOR_BINS -> DONE!!")
+
 button.pressed(start)
 e_stop.pressed(kill)
 
@@ -153,6 +164,8 @@ while True:
 	elif bot_state == FOLLOW_WALL:
 		follow_wall()
 	elif bot_state == SCAN_FOR_BINS:
+		scan_for_bins()
+	elif bot_state == DONE:
 		print("DONE!")
 		kill()
 		sleep(1000)
