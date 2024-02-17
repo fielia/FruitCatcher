@@ -22,7 +22,7 @@ southeast_motor: Motor = Motor(Ports.PORT10, 0.2, True) # set boolean so motor s
 negative_motors: MotorGroup = MotorGroup(northwest_motor, southeast_motor) # the motors on the negative diagonal
 positive_motors: MotorGroup = MotorGroup(northeast_motor, southwest_motor) # the motors on the positive diagonal
 
-arm_motor = Motor(Ports.PORT18, 0.2, True)
+arm_motors = MotorGroup(Motor(Ports.PORT14, 0.2, True), Motor(Ports.PORT11, 0.2, False))
 claw_motor = Motor(Ports.PORT12, 0.2, True)
 door_motor = Motor(Ports.PORT1, 0.2, True)
 imu = Inertial(Ports.PORT20)
@@ -43,7 +43,7 @@ def activate_control():
 		northeast_motor.spin(FORWARD, forward_speed - right_speed + spin_speed, RPM)
 		southwest_motor.spin(FORWARD, forward_speed - right_speed - spin_speed, RPM)
 		southeast_motor.spin(FORWARD, forward_speed + right_speed - spin_speed, RPM)
-		arm_motor.spin(FORWARD, move_arm(75), RPM)
+		arm_motors.spin(FORWARD, move_arm(75), RPM)
 		door_motor.spin_for(FORWARD, toggleDoor(360), DEGREES, 75, RPM, False)
 		if squeeze():
 			claw_motor.spin(FORWARD, 5, RPM)
