@@ -11,6 +11,7 @@
 from vex import *
 from tree import FruitColor, Orchard
 from movement import *
+from routes import *
 
 # variable declaration
 brain = Brain()
