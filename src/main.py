@@ -10,6 +10,7 @@
 # Library imports
 from vex import *
 # from control import move_drive, rotate_drive, rotate_arm, move_claw
+import random
 
 # variable declaration
 brain = Brain()
@@ -22,18 +23,16 @@ southeast_motor: Motor = Motor(Ports.PORT10, 0.2, True) # set boolean so motor s
 negative_motors: MotorGroup = MotorGroup(northwest_motor, southeast_motor) # the motors on the negative diagonal
 positive_motors: MotorGroup = MotorGroup(northeast_motor, southwest_motor) # the motors on the positive diagonal
 
-arm_motor_1 = Motor(Ports.PORT18, 0.2, True)
-arm_motor_2 = Motor(Ports.PORT14, 0.2, True)
-arm_motors = MotorGroup(arm_motor_1, arm_motor_2)
+arm_motor = Motor(Ports.PORT18, 0.2, True)
 claw_motor = Motor(Ports.PORT12, 0.2, True)
 door_motor = Motor(Ports.PORT1, 0.2, True)
 imu = Inertial(Ports.PORT20)
 basket_sensor = DigitalIn(brain.three_wire_port.b)
 
-button = Bumper(brain.three_wire_port.d)
-e_stop = Bumper(brain.three_wire_port.c)
+button = Bumper(brain.three_wire_port.b)
 front_range_finder = Sonar(brain.three_wire_port.e) # NOTE: has a range of 30 to 3000 MM
 left_range_finder = Sonar(brain.three_wire_port.g)
+fruit_range_finder = Sonar(brain.three_wire_port.c)
 
 IDLE = 0
 DRIVE_TO_WALL = 1
@@ -49,15 +48,15 @@ y_button: Controller.Button = controller.buttonY
 right_button: Controller.Button = controller.buttonRight
 
 def drive_for(distance_x: float, distance_y: float, rotation_angle: float, speed: float = 40, stall: bool = True):
-	wheel_diameter: float = 0
-	degrees_x: float = distance_x / (wheel_diameter * math.pi) * 360
-	degrees_y: float = distance_y / (wheel_diameter * math.pi) * 360
-	degrees_r: float = distance_x / (wheel_diameter * math.pi) * 360 # need to solve
+	wheel_diameter: float = 10
+	degrees_x: float = distance_x / (wheel_diameter * math.pi) * 180
+	degrees_y: float = distance_y / (wheel_diameter * math.pi) * 180
+	degrees_r: float = rotation_angle # need to solve
 
 	northwest_motor.spin_for(FORWARD, degrees_x + degrees_y + degrees_r, DEGREES, speed, RPM, wait=False)
 	northeast_motor.spin_for(FORWARD, degrees_x - degrees_y + degrees_r, DEGREES, speed, RPM, wait=False)
 	southwest_motor.spin_for(FORWARD, degrees_x - degrees_y - degrees_r, DEGREES, speed, RPM, wait=False)
-	southeast_motor.spin_for(FORWARD, degrees_x + degrees_y - degrees_r, DEGREES, speed, RPM, wait=stall)
+	southeast_motor.spin_for(FORWARD, degrees_x + degrees_y - degrees_r, DEGREES, speed, RPM, wait=True)
 
 def spin(forward: float, sideways: float, spin: float, speed: float = 40, stall: bool = True):
 	# northwest_motor.spin()
@@ -67,7 +66,7 @@ def spin(forward: float, sideways: float, spin: float, speed: float = 40, stall:
 	southeast_motor.spin(FORWARD, forward + sideways - spin, RPM)		
 
 def move_arm(end_position: float, speed: float = 75, stall: bool = True):
-	arm_motors.spin_to_position(end_position, DEGREES, speed, RPM, wait=stall)
+	arm_motor.spin_to_position(end_position, DEGREES, speed, RPM, wait=stall)
 
 def move_claw(end_position: float, speed: int = 50, stall: bool = True):
 	claw_motor.spin_to_position(end_position, DEGREES, speed, RPM, wait=stall)
@@ -88,9 +87,9 @@ def toggleDoor(angle: int = 360, outwards: int = 0, speed: float = 75, stall: bo
 def start():
 	global bot_state
 	bot_state = DRIVE_TO_WALL
-	brain.screen.print("IDLE -> DRIVE_TO_WALL")
+	print("IDLE -> DRIVE_TO_WALL")
 
-def kill():
+def stop():
 	northeast_motor.stop(HOLD)
 	northwest_motor.stop(HOLD)
 	southeast_motor.stop(HOLD)
@@ -100,14 +99,16 @@ def drive_to_wall():
 	global bot_state
 
 	dist = left_range_finder.distance(DistanceUnits.CM)
-	print(dist)
+	#print(dist)
 	if dist>15:
 		orientation = imu.rotation()
 		spin_error = orientation*-0.2
 		error = dist*.75
+		if error > 50:
+			error = 50
 		spin(50+error, 0, spin_error)
 	else:
-		kill()
+		stop()
 		bot_state = FOLLOW_WALL
 		print("DRIVE_TO_WALL -> FOLLOW_WALL")
 
@@ -118,14 +119,14 @@ def follow_wall():
 
 	dist = front_range_finder.distance(DistanceUnits.CM)
 
-	if dist>20: # if we are not at the bins yet
+	if dist > 5: # if we are not at the bins yet
 		orientation = imu.rotation()
-		print(orientation)
+		#print(orientation)
 		if abs(orientation) < 10: # if we are pointing relatively forwards...
 			# adjust distance from the wall and keep going
 			spin_error = orientation*-.2
 			side_dist = left_range_finder.distance(DistanceUnits.CM)
-			if abs(side_dist-past_side_dist) > 20:
+			if abs(side_dist-past_side_dist) > 40:
 				side_dist = past_side_dist
 			else:
 				past_side_dist = side_dist
@@ -138,20 +139,25 @@ def follow_wall():
 
 	else:
 		bot_state = SCAN_FOR_BINS
+		stop()
 		print("FOLLOW_WALL -> SCAN_FOR_BINS")
 
 def scan_for_bins():
 	global bot_state
 
-	if basket_sensor.value()<2850:
-		door_motor.spin_to_position(30, velocity=5)
+	val = basket_sensor.value()
+	print(val)
+	if val < 2800:
+		door_motor.spin_for(FORWARD, 180, DEGREES, velocity=20)
+		# door_motor.spin_for()
+		drive_for(10, 0, 0, speed=100)
+		drive_for(-10, 0, 0, speed=100)
 	else:
 		bot_state = DONE
-		print("SCAN_FOR_BINS -> DONE!!")
+		stop()
+		print("SCAN_FOR_BINS -> DONE!!") 
 
 button.pressed(start)
-e_stop.pressed(kill)
-
 print("Calibrating...")
 imu.calibrate()
 print("Robot Armed")
@@ -167,5 +173,4 @@ while True:
 		scan_for_bins()
 	elif bot_state == DONE:
 		print("DONE!")
-		kill()
-		sleep(1000)
+		sleep(500)
