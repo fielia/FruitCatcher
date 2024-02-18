@@ -1,16 +1,30 @@
 from vex import *
 class FruitColor():
-	sensitivity: float = 2
-	GRAPEFRUIT = Signature(1, 6513, 7443, 6978, 1111, 1431, 1271, sensitivity, 0)
-	LIME = Signature(2, -6249, -5385, -5817, -3721, -3023, -3372, sensitivity, 0)
-	LEMON = Signature(3, 2607, 3087, 2846, -3461, -3199, -3330, sensitivity, 0)
-	ORANGE_FRUIT = Signature(4, 7581, 8071, 7826, -2049, -1809, -1929, sensitivity, 0)		
+	"""
+	An enum to better access the colors.
 
-possible_heights: list[float] = [17, 29, 38] # just for reference
+	Params:
+		_sensitivity (float): the sensitivity value for each color.
+	"""
+	_sensitivity: float = 2
+	GRAPEFRUIT = Signature(1, 6513, 7443, 6978, 1111, 1431, 1271, _sensitivity, 0)
+	LIME = Signature(2, -6249, -5385, -5817, -3721, -3023, -3372, _sensitivity, 0)
+	LEMON = Signature(3, 2607, 3087, 2846, -3461, -3199, -3330, _sensitivity, 0)
+	ORANGE_FRUIT = Signature(4, 7581, 8071, 7826, -2049, -1809, -1929, _sensitivity, 0)		
+
+possible_heights: list[float] = [17, 29, 38]
 class Tree():
+	"""
+	Represents one tree on the field.
+ 
+	Params:
+		_fruit_color (Signature): the color of the fruits on the tree.
+		_height (float): the height of the branches on the tree.
+		_num_picked (int): the amount of fruit picked (starts at 0, maxes out at 4).
+	"""
 	_fruit_color: Signature
 	_height: float
-	_num_picked: int # range is 0-4 for how many have been picked
+	_num_picked: int
 
 	def __init__(self, fruit_color: Signature, height: float) -> None:
 		self._fruit_color = fruit_color
@@ -30,6 +44,12 @@ class Tree():
 		return self._num_picked
 
 class Orchard():
+	"""
+	Represents the orchard, and contains all the trees.
+
+	Params:
+		_trees (List[List[Tree]]): a 2D array of the trees.
+	"""
 	_trees: List[List[Tree]]
 
 	def __init__(self) -> None:
@@ -39,9 +59,29 @@ class Orchard():
 		return self._trees[location[0]][location[1]]
 	
 	def new_tree_discovered(self, location: tuple[int, int]) -> bool:
+		"""
+		Checks if a tree in a given location has been logged.
+
+		Params:
+			location (tuple[int, int]): the location of the tree to check.
+
+		Returns:
+			bool: true if a tree is not found at the location, false otherwise.
+		"""
 		return not self._at_location(location)
 
-	def add_tree(self, color: Signature, height: float, location: tuple[int, int]) -> bool: # true if success, false if already present
+	def add_tree(self, color: Signature, height: float, location: tuple[int, int]) -> bool:
+		"""
+		Adds a tree to the orchard, if the tree has not already been logged.
+
+		Params:
+			color (Signature): the color of the fruits on the tree.
+			height (float): the height of the branches on the tree.
+			location (tuple[int, int]): the location of the tree.
+
+		Returns:
+			bool: true if successful (the tree is not already logged).
+		"""
 		if not self.new_tree_discovered(location):
 			return False
 		self._trees[location[0]][location[1]] = Tree(color, height)
@@ -57,6 +97,12 @@ class Orchard():
 			return self._at_location(location).get_height()
 	
 	def _fill_third_tree(self, row: int) -> None:
+		"""
+		If two of the three trees in a row are logged, the third can be calculated
+
+		Params:
+			row (int): The row of trees to check.
+		"""
 		if not self._at_location((row, 0)) and self._at_location((row, 1)) and self._at_location((row, 2)):
 			fruit_color: Signature = self._at_location((row, 1)).get_fruit_color()
 			fruit_height: float = 0

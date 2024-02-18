@@ -23,17 +23,31 @@ def __define__src_tree():
 	__name__ = "__src_tree__"
 	from vex import *
 	class FruitColor():
-		sensitivity: float = 2
-		GRAPEFRUIT = Signature(1, 6513, 7443, 6978, 1111, 1431, 1271, sensitivity, 0)
-		LIME = Signature(2, -6249, -5385, -5817, -3721, -3023, -3372, sensitivity, 0)
-		LEMON = Signature(3, 2607, 3087, 2846, -3461, -3199, -3330, sensitivity, 0)
-		ORANGE_FRUIT = Signature(4, 7581, 8071, 7826, -2049, -1809, -1929, sensitivity, 0)		
+		"""
+		An enum to better access the colors.
 	
-	possible_heights: list[float] = [17, 29, 38] # just for reference
+		Params:
+			_sensitivity (float): the sensitivity value for each color.
+		"""
+		_sensitivity: float = 2
+		GRAPEFRUIT = Signature(1, 6513, 7443, 6978, 1111, 1431, 1271, _sensitivity, 0)
+		LIME = Signature(2, -6249, -5385, -5817, -3721, -3023, -3372, _sensitivity, 0)
+		LEMON = Signature(3, 2607, 3087, 2846, -3461, -3199, -3330, _sensitivity, 0)
+		ORANGE_FRUIT = Signature(4, 7581, 8071, 7826, -2049, -1809, -1929, _sensitivity, 0)		
+	
+	possible_heights: list[float] = [17, 29, 38]
 	class Tree():
+		"""
+		Represents one tree on the field.
+	 
+		Params:
+			_fruit_color (Signature): the color of the fruits on the tree.
+			_height (float): the height of the branches on the tree.
+			_num_picked (int): the amount of fruit picked (starts at 0, maxes out at 4).
+		"""
 		_fruit_color: Signature
 		_height: float
-		_num_picked: int # range is 0-4 for how many have been picked
+		_num_picked: int
 	
 		def __init__(self, fruit_color: Signature, height: float) -> None:
 			self._fruit_color = fruit_color
@@ -53,6 +67,12 @@ def __define__src_tree():
 			return self._num_picked
 	
 	class Orchard():
+		"""
+		Represents the orchard, and contains all the trees.
+	
+		Params:
+			_trees (List[List[Tree]]): a 2D array of the trees.
+		"""
 		_trees: List[List[Tree]]
 	
 		def __init__(self) -> None:
@@ -62,9 +82,29 @@ def __define__src_tree():
 			return self._trees[location[0]][location[1]]
 		
 		def new_tree_discovered(self, location: tuple[int, int]) -> bool:
+			"""
+			Checks if a tree in a given location has been logged.
+	
+			Params:
+				location (tuple[int, int]): the location of the tree to check.
+	
+			Returns:
+				bool: true if a tree is not found at the location, false otherwise.
+			"""
 			return not self._at_location(location)
 	
-		def add_tree(self, color: Signature, height: float, location: tuple[int, int]) -> bool: # true if success, false if already present
+		def add_tree(self, color: Signature, height: float, location: tuple[int, int]) -> bool:
+			"""
+			Adds a tree to the orchard, if the tree has not already been logged.
+	
+			Params:
+				color (Signature): the color of the fruits on the tree.
+				height (float): the height of the branches on the tree.
+				location (tuple[int, int]): the location of the tree.
+	
+			Returns:
+				bool: true if successful (the tree is not already logged).
+			"""
 			if not self.new_tree_discovered(location):
 				return False
 			self._trees[location[0]][location[1]] = Tree(color, height)
@@ -80,6 +120,12 @@ def __define__src_tree():
 				return self._at_location(location).get_height()
 		
 		def _fill_third_tree(self, row: int) -> None:
+			"""
+			If two of the three trees in a row are logged, the third can be calculated
+	
+			Params:
+				row (int): The row of trees to check.
+			"""
 			if not self._at_location((row, 0)) and self._at_location((row, 1)) and self._at_location((row, 2)):
 				fruit_color: Signature = self._at_location((row, 1)).get_fruit_color()
 				fruit_height: float = 0
@@ -117,28 +163,44 @@ def __define__src_movement():
 	from vex import *
 	
 	class Log():
-		_y_distance: float # forward positive, backward negative
-		_x_distance: float # right positive, left negatvie
-		_rot_angle: float # clockwise positive, counterclockwise negative
+		"""
+		Logs the changes in position of the robot, to find the current position relative to start.
+		STATIC CLASS
 	
-		def __init__(self) -> None:
-			self._y_distance = 0
-			self._x_distance = 0
-			self._rot_angle = 0
+		Params:
+			_y_distance (float): forward is positive, and backward is negative.
+			_x_distance (float): right is positive, and left is negative.
+			_rot_angle (float): clockwise is positive, and counterclockwise is negative.
+		"""
+		_y_distance: float = 0 # forward positive, backward negative
+		_x_distance: float = 0 # right positive, left negatvie
+		_rot_angle: float = 0 # clockwise positive, counterclockwise negative
 	
-		def add_distance(self, y_distance: float = 0, x_distance: float = 0, rot_angle: float = 0):
-			self._y_distance += y_distance
-			self._x_distance += x_distance
-			self._rot_angle += rot_angle
+		@staticmethod
+		def add_distance(y_distance: float = 0, x_distance: float = 0, rot_angle: float = 0) -> None:
+			"""
+			Adds respective values to the total.
+	
+			Params:
+				y_distance (float): forward is positive, and backward is negative.
+				x_distance (float): right is positive, and left is negative.
+				rot_angle (float): clockwise is positive, and counterclockwise is negative.
+			"""
+			Log._y_distance += y_distance
+			Log._x_distance += x_distance
+			Log._rot_angle += rot_angle
 		
-		def get_y_distance(self) -> float:
-			return self._y_distance
+		@staticmethod
+		def get_y_distance() -> float:
+			return Log._y_distance
 		
-		def get_x_distance(self) -> float:
-			return self._x_distance
+		@staticmethod
+		def get_x_distance() -> float:
+			return Log._x_distance
 		
-		def get_rot_angle(self) -> float:
-			return self._rot_angle
+		@staticmethod
+		def get_rot_angle() -> float:
+			return Log._rot_angle
 	
 	# motor names are based on top-down view with proper orientation
 	northwest_motor: Motor = Motor(Ports.PORT7, 0.2, False) # set boolean so motor spins towards the front of the robot
@@ -152,43 +214,81 @@ def __define__src_movement():
 	claw_motor = Motor(Ports.PORT12, 0.2, True)
 	door_motor = Motor(Ports.PORT1, 0.2, True)
 	
+	def drive(distance_y: float, distance_x: float, rotation_angle: float, speed: float = 40, stall: bool = True) -> None:
+		"""
+		Drives the robot.
 	
-	controller: Controller = Controller()
-	# face buttons
-	y_button: Controller.Button = controller.buttonY
-	right_button: Controller.Button = controller.buttonRight
-	
-	def drive(distance_x: float, distance_y: float, rotation_angle: float, speed: float = 40, stall: bool = True):
+		Params:
+			distance_y (float): forward is positive, and backward is negative.
+			distance_x (float): right is positive, and left is negative.
+			rotation_angle (float): clockwise is positive, and counterclockwise is negative.
+		"""
 		wheel_diameter: float = 0
-		degrees_x: float = distance_x / (wheel_diameter * math.pi) * 360
 		degrees_y: float = distance_y / (wheel_diameter * math.pi) * 360
+		degrees_x: float = distance_x / (wheel_diameter * math.pi) * 360
 		degrees_r: float = distance_x / (wheel_diameter * math.pi) * 360 # need to solve
 	
-		northwest_motor.spin_for(FORWARD, degrees_x + degrees_y + degrees_r, DEGREES, speed, RPM, wait=False)
-		northeast_motor.spin_for(FORWARD, degrees_x - degrees_y + degrees_r, DEGREES, speed, RPM, wait=False)
-		southwest_motor.spin_for(FORWARD, degrees_x - degrees_y - degrees_r, DEGREES, speed, RPM, wait=False)
-		southeast_motor.spin_for(FORWARD, degrees_x + degrees_y - degrees_r, DEGREES, speed, RPM, wait=stall)
+		northwest_motor.spin_for(FORWARD, degrees_y + degrees_x + degrees_r, DEGREES, speed, RPM, wait=False)
+		northeast_motor.spin_for(FORWARD, degrees_y - degrees_x + degrees_r, DEGREES, speed, RPM, wait=False)
+		southwest_motor.spin_for(FORWARD, degrees_y - degrees_x - degrees_r, DEGREES, speed, RPM, wait=False)
+		southeast_motor.spin_for(FORWARD, degrees_y + degrees_x - degrees_r, DEGREES, speed, RPM, wait=stall)
+		
+		Log.add_distance(distance_y, distance_x, rotation_angle)
 	
 	def move_arm(end_position: float, speed: float = 75, stall: bool = True) -> None:
+		"""
+		Moves the arm.
+	
+		Params:
+			end_position (float): the position of the arm after execution.
+			speed (float): the speed the arm should traved (default is 75 RPM).
+			stall (bool): wait for the arm to finish moving before moving on (default is true).
+		"""
 		arm_motors.spin_to_position(end_position, DEGREES, speed, RPM, wait=stall)
 	
 	def move_claw(end_position: float, speed: int = 50, stall: bool = True) -> None:
+		"""
+		Moves the claw.
+	
+		Params:
+			end_position (float): the position of the claw after execution.
+			speed (float): the speed the claw should traved (default is 50 RPM).
+			stall (bool): wait for the claw to finish moving before moving on (default is true).
+		"""
 		claw_motor.spin_to_position(end_position, DEGREES, speed, RPM, wait=stall)
 	
 	def squeeze() -> None:
+		"""
+		Squeezes the claw at a small speed, to better grip a fruit when pulling it down.
+		"""
 		claw_motor.spin(FORWARD, 5, RPM)
 	
 	# outwards: 1 = spin out, -1 = spin in
-	def toggleDoor(angle: int = 360, outwards: int = 0, speed: float = 75, stall: bool = True) -> None:
+	def toggleDoor(angle: int = 360, outwards: int = 0, speed: float = 75) -> None:
+		"""
+		Moves the door, and automatically checks if complete.
+	
+		Params:
+			angle (int): the angle to spin the door (default is 360 degrees).
+			outwards (int): 1 = spin out, -1 = spin in, 0 = don't spin.
+			speed (float): the speed to spin the door (default is 75 RPM).
+		"""
 		zero_position: vexnumber = 0
 		door_motor.set_position(zero_position, DEGREES)
-		door_motor.spin_for(FORWARD, outwards * angle, DEGREES, speed, RPM, wait=stall)
+		door_motor.spin_for(FORWARD, outwards * angle, DEGREES, speed, RPM, wait=False)
 		wait(200)
 		if door_motor.is_spinning():
 			door_motor.spin_to_position(0)
 			toggleDoor(angle, outwards, speed)
 	
+	controller: Controller = Controller()
+	y_button: Controller.Button = controller.buttonY
+	right_button: Controller.Button = controller.buttonRight
+	
 	def kill() -> None:
+		"""
+		Checks if kill command on controller is executed.
+		"""
 		if y_button.pressing() and right_button.pressing():
 			raise Exception("Kill Switch Triggered.")
 
@@ -211,7 +311,7 @@ def __define__src_main():
 	# ---------------------------------------------------------------------------- #
 	#                                                                              #
 	# 	Module:       main.py                                                      #
-	# 	Author:       ritvi                                                        #
+	# 	Author:       ritvik                                                       #
 	# 	Created:      1/15/2024, 12:03:14 PM                                       #
 	# 	Description:  V5 project                                                   #
 	#                                                                              #
@@ -240,8 +340,10 @@ def __define__src_main():
 	
 	orchard = Orchard()
 	
-	# test function (runs teleoperation)
 	def activate_control():
+		"""
+		What the robot executes.
+		"""
 		while button.pressing():
 			wait(5)
 		drive(100, 0, 0)
@@ -252,9 +354,13 @@ def __define__src_main():
 		drive(-100, 0, 0)
 		scan_fruit((0, 0))
 	
-	# CODE FROM CONTROL.PY
-	
 	def get_color() -> Signature:
+		"""
+		Finds a fruit and returns its color.
+	
+		Returns:
+			Signature: the signature value of the color found.
+		"""
 		COLORS = [FruitColor.GRAPEFRUIT, FruitColor.LIME, FruitColor.LEMON, FruitColor.ORANGE_FRUIT]
 		for color in COLORS:
 			objects: Tuple[VisionObject] = camera.take_snapshot(color, 1)
@@ -265,23 +371,42 @@ def __define__src_main():
 		raise Exception("Camera did not detect a fruit.")
 	
 	def get_height() -> float:
-		
+		"""
+		Returns the distance found by the ultrasonic sensor.
+	
+		Returns:
+			float: the value returned by the sensors.
+		"""
 		height = fruit_sonic.distance(DistanceUnits.CM)
 		if height > 20:
 			raise Exception("Ultrasonic did not detect a fruit.")
 		return height
 	
 	def scan_fruit(location: tuple[int, int]) -> None:
-		fruit_color: Signature = get_color()
-		height: float = get_height()
-		orchard.add_tree(fruit_color, convert_height(height), location)
+		"""
+		Calculates the color and height of the tree and adds it into the orchard at the given location.
 	
-	def convert_height(old_height: float) -> float: # takes a raw value from the ultrasonic and returns the height of the fruit above the ground
+		Params:
+			location (tuple[int, int]): the location, (x, y) of the tree in a grid system.
+		"""
+		fruit_color: Signature = get_color()
+		raw_height: float = get_height()
+		orchard.add_tree(fruit_color, convert_height(raw_height), location)
+	
+	def convert_height(old_height: float) -> float:
+		"""
+		Converts the raw ultrasonic sensor output to tree heights.
+	
+		Params:
+			old_height (float): the raw value from the ultrasonic sensor.
+	
+		Returns:
+			float: the tree height.
+		"""
 		return old_height
 	
 	# initialize testing (will be triggered with button press and pre-run checks will be run here)
-	brain.screen.print("Teleop Activated")
-	activate_control()
+	button.pressed(activate_control)
 
 	l = locals()
 	__ModuleCache__["src_main"] = __ModuleNamespace__(l)
@@ -289,7 +414,7 @@ def __define__src_main():
 
 try: __define__src_main()
 except Exception as e:
-	s = [(25,"src\tree.py"),(118,"src\movement.py"),(204,"src\routes.py"),(212,"src\main.py"),(289,"<module>")]
+	s = [(25,"src\tree.py"),(164,"src\movement.py"),(304,"src\routes.py"),(312,"src\main.py"),(414,"<module>")]
 	def f(x: str):
 		if not x.startswith('  File'): return x
 		l = int(match('.+line (\\d+),.+', x).group(1))
