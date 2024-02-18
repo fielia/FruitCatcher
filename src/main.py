@@ -27,7 +27,7 @@ arm_motor = Motor(Ports.PORT18, 0.2, True)
 claw_motor = Motor(Ports.PORT12, 0.2, True)
 door_motor = Motor(Ports.PORT1, 0.2, True)
 imu = Inertial(Ports.PORT20)
-basket_sensor = DigitalIn(brain.three_wire_port.b)
+basket_sensor = Light(brain.three_wire_port.a)
 
 button = Bumper(brain.three_wire_port.b)
 front_range_finder = Sonar(brain.three_wire_port.e) # NOTE: has a range of 30 to 3000 MM
