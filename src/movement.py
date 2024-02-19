@@ -48,11 +48,11 @@ class Log():
 
 # motor names are based on top-down view with proper orientation
 northwest_motor: Motor = Motor(Ports.PORT7, 0.2, False) # set boolean so motor spins towards the front of the robot
-northeast_motor: Motor = Motor(Ports.PORT8, 0.2, False) # set boolean so motor spins towards the front of the robot
-southwest_motor: Motor = Motor(Ports.PORT9, 0.2, True) # set boolean so motor spins towards the front of the robot
+northeast_motor: Motor = Motor(Ports.PORT8, 0.2, True) # set boolean so motor spins towards the front of the robot
+southwest_motor: Motor = Motor(Ports.PORT9, 0.2, False) # set boolean so motor spins towards the front of the robot
 southeast_motor: Motor = Motor(Ports.PORT10, 0.2, True) # set boolean so motor spins towards the front of the robot
 
-arm_motor = Motor(Ports.PORT18, 0.2, True)
+arm_motor = Motor(Ports.PORT11, 0.2, True)
 claw_motor = Motor(Ports.PORT12, 0.2, True)
 door_motor = Motor(Ports.PORT1, 0.2, True)
 
@@ -91,8 +91,8 @@ def rotate(rotation_angle: float, speed: float = 40, stall: bool = True) -> None
 	degrees_r: float = rotation_angle / (robot_diameter * math.pi) / (wheel_diameter * math.pi) * 360
 	
 	northwest_motor.spin_for(FORWARD, degrees_r, DEGREES, speed, RPM, wait=False)
-	northeast_motor.spin_for(FORWARD, degrees_r, DEGREES, speed, RPM, wait=False)
-	southwest_motor.spin_for(FORWARD, -degrees_r, DEGREES, speed, RPM, wait=False)
+	northeast_motor.spin_for(FORWARD, -degrees_r, DEGREES, speed, RPM, wait=False)
+	southwest_motor.spin_for(FORWARD, degrees_r, DEGREES, speed, RPM, wait=False)
 	southeast_motor.spin_for(FORWARD, -degrees_r, DEGREES, speed, RPM, wait=stall)
 
 	Log.add_distance(rot_angle=degrees_r)
@@ -141,7 +141,7 @@ def toggleDoor(angle: int = 360, outwards: int = 0, speed: float = 75) -> None:
 	zero_position: vexnumber = 0
 	door_motor.set_position(zero_position, DEGREES)
 	door_motor.spin_for(FORWARD, outwards * angle, DEGREES, speed, RPM, wait=False)
-	wait(200)
+	wait(1000)
 	if door_motor.is_spinning():
 		door_motor.spin_to_position(0)
 		toggleDoor(angle, outwards, speed)
@@ -156,3 +156,12 @@ def kill() -> None:
 	"""
 	if y_button.pressing() and right_button.pressing():
 		raise Exception("Kill Switch Triggered.")
+
+def reset_motors() -> None:
+	northwest_motor.set_position(0, DEGREES)
+	northeast_motor.set_position(0, DEGREES)
+	southwest_motor.set_position(0, DEGREES)
+	southeast_motor.set_position(0, DEGREES)
+	arm_motor.set_position(0, DEGREES)
+	claw_motor.set_position(0, DEGREES)
+	door_motor.set_position(0, DEGREES)

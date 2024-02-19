@@ -16,8 +16,6 @@ from routes import *
 # variable declaration
 brain = Brain()
 
-log = Log()
-
 imu = Inertial(Ports.PORT20)
 button = Bumper(brain.three_wire_port.b)
 range_finder = Sonar(brain.three_wire_port.e) # NOTE: has a range of 30 to 3000 MM

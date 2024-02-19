@@ -103,7 +103,7 @@ def compile():
 					if line.count('=') == 1:
 						vname = line.split('=', 1)[0]
 						if not (vname.startswith('\t') or vname.startswith(' ') or vname.startswith('#')):
-							module_classes.append(vname.strip())
+							module_classes.append(vname.split(':', 1)[0].strip())
 
 					out += '\t' + line + '\n'
 

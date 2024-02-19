@@ -3,22 +3,16 @@ from io import StringIO
 from sys import print_exception
 from re import match
 from sys import exit
-from vex import *
-
 
 __ModuleCache__ = {}
-
 class __ModuleNamespace__():
 	def __init__(self, kwargs):
 		for name in kwargs:
 			setattr(self, name, kwargs[name])
-
 	def __contains__(self, key):
 		return key in self.__dict__
-
 	def __iter__(self):
 		return self.__dict__.__iter__()
-
 def __define__src_tree():
 	if "src_tree" in __ModuleCache__: return __ModuleCache__["src_tree"]
 	__name__ = "__src_tree__"
@@ -151,6 +145,7 @@ def __define__src_tree():
 
 	l = locals()
 	l["FruitColor"] = FruitColor
+	l["possible_heights"] = possible_heights
 	l["Tree"] = Tree
 	l["Orchard"] = Orchard
 	__ModuleCache__["src_tree"] = __ModuleNamespace__(l)
@@ -208,11 +203,11 @@ def __define__src_movement():
 	
 	# motor names are based on top-down view with proper orientation
 	northwest_motor: Motor = Motor(Ports.PORT7, 0.2, False) # set boolean so motor spins towards the front of the robot
-	northeast_motor: Motor = Motor(Ports.PORT8, 0.2, False) # set boolean so motor spins towards the front of the robot
-	southwest_motor: Motor = Motor(Ports.PORT9, 0.2, True) # set boolean so motor spins towards the front of the robot
+	northeast_motor: Motor = Motor(Ports.PORT8, 0.2, True) # set boolean so motor spins towards the front of the robot
+	southwest_motor: Motor = Motor(Ports.PORT9, 0.2, False) # set boolean so motor spins towards the front of the robot
 	southeast_motor: Motor = Motor(Ports.PORT10, 0.2, True) # set boolean so motor spins towards the front of the robot
 	
-	arm_motor = Motor(Ports.PORT18, 0.2, True)
+	arm_motor = Motor(Ports.PORT11, 0.2, True)
 	claw_motor = Motor(Ports.PORT12, 0.2, True)
 	door_motor = Motor(Ports.PORT1, 0.2, True)
 	
@@ -251,8 +246,8 @@ def __define__src_movement():
 		degrees_r: float = rotation_angle / (robot_diameter * math.pi) / (wheel_diameter * math.pi) * 360
 		
 		northwest_motor.spin_for(FORWARD, degrees_r, DEGREES, speed, RPM, wait=False)
-		northeast_motor.spin_for(FORWARD, degrees_r, DEGREES, speed, RPM, wait=False)
-		southwest_motor.spin_for(FORWARD, -degrees_r, DEGREES, speed, RPM, wait=False)
+		northeast_motor.spin_for(FORWARD, -degrees_r, DEGREES, speed, RPM, wait=False)
+		southwest_motor.spin_for(FORWARD, degrees_r, DEGREES, speed, RPM, wait=False)
 		southeast_motor.spin_for(FORWARD, -degrees_r, DEGREES, speed, RPM, wait=stall)
 	
 		Log.add_distance(rot_angle=degrees_r)
@@ -301,7 +296,7 @@ def __define__src_movement():
 		zero_position: vexnumber = 0
 		door_motor.set_position(zero_position, DEGREES)
 		door_motor.spin_for(FORWARD, outwards * angle, DEGREES, speed, RPM, wait=False)
-		wait(200)
+		wait(1000)
 		if door_motor.is_spinning():
 			door_motor.spin_to_position(0)
 			toggleDoor(angle, outwards, speed)
@@ -316,9 +311,37 @@ def __define__src_movement():
 		"""
 		if y_button.pressing() and right_button.pressing():
 			raise Exception("Kill Switch Triggered.")
+	
+	def reset_motors() -> None:
+		northwest_motor.set_position(0, DEGREES)
+		northeast_motor.set_position(0, DEGREES)
+		southwest_motor.set_position(0, DEGREES)
+		southeast_motor.set_position(0, DEGREES)
+		arm_motor.set_position(0, DEGREES)
+		claw_motor.set_position(0, DEGREES)
+		door_motor.set_position(0, DEGREES)
 
 	l = locals()
 	l["Log"] = Log
+	l["northwest_motor"] = northwest_motor
+	l["northeast_motor"] = northeast_motor
+	l["southwest_motor"] = southwest_motor
+	l["southeast_motor"] = southeast_motor
+	l["arm_motor"] = arm_motor
+	l["claw_motor"] = claw_motor
+	l["door_motor"] = door_motor
+	l["wheel_diameter"] = wheel_diameter
+	l["drive"] = drive
+	l["rotate"] = rotate
+	l["move_arm"] = move_arm
+	l["move_claw"] = move_claw
+	l["squeeze"] = squeeze
+	l["toggleDoor"] = toggleDoor
+	l["controller"] = controller
+	l["y_button"] = y_button
+	l["right_button"] = right_button
+	l["kill"] = kill
+	l["reset_motors"] = reset_motors
 	__ModuleCache__["src_movement"] = __ModuleNamespace__(l)
 	return __ModuleCache__["src_movement"]
 
@@ -367,6 +390,10 @@ def __define__src_routes():
 				drive(0, 1530) # in mm
 
 	l = locals()
+	l["at_exit"] = at_exit
+	l["go_to"] = go_to
+	l["_go_to_row"] = _go_to_row
+	l["_go_to_col"] = _go_to_col
 	__ModuleCache__["src_routes"] = __ModuleNamespace__(l)
 	return __ModuleCache__["src_routes"]
 
@@ -393,8 +420,6 @@ def __define__src_main():
 	
 	# variable declaration
 	brain = Brain()
-	
-	log = Log()
 	
 	imu = Inertial(Ports.PORT20)
 	button = Bumper(brain.three_wire_port.b)
@@ -491,12 +516,26 @@ def __define__src_main():
 	button.pressed(testing)
 
 	l = locals()
+	l["brain"] = brain
+	l["imu"] = imu
+	l["button"] = button
+	l["range_finder"] = range_finder
+	l["fruit_sonic"] = fruit_sonic
+	l["camera"] = camera
+	l["orchard"] = orchard
+	l["CLAW_CHOP_POSITION"] = CLAW_CHOP_POSITION
+	l["testing"] = testing
+	l["activate_auto"] = activate_auto
+	l["get_color"] = get_color
+	l["get_height"] = get_height
+	l["scan_fruit"] = scan_fruit
+	l["convert_height"] = convert_height
 	__ModuleCache__["src_main"] = __ModuleNamespace__(l)
 	return __ModuleCache__["src_main"]
 
 try: __define__src_main()
 except Exception as e:
-	s = [(25,"src\tree.py"),(163,"src\movement.py"),(330,"src\routes.py"),(378,"src\main.py"),(498,"<module>")]
+	s = [(20,"src\tree.py"),(158,"src\movement.py"),(352,"src\routes.py"),(404,"src\main.py"),(535,"<module>")]
 	def f(x: str):
 		if not x.startswith('  File'): return x
 		l = int(match('.+line (\\d+),.+', x).group(1))
