@@ -89,7 +89,8 @@ def rotate(rotation_angle: float, speed: float = 40, stall: bool = True) -> None
 		speed (float): the speed the wheel motors should spin (default is 40 RPM).
 		stall (bool): wait for the motion to finish before moving on (default is true).
 	"""
-	degrees_r: float = rotation_angle / (wheel_diameter * math.pi) * 360 # need to solve
+	robot_diameter: float = 380 # in mm
+	degrees_r: float = rotation_angle / (robot_diameter * math.pi) / (wheel_diameter * math.pi) * 360
 	
 	northwest_motor.spin_for(FORWARD, degrees_r, DEGREES, speed, RPM, wait=False)
 	northeast_motor.spin_for(FORWARD, degrees_r, DEGREES, speed, RPM, wait=False)

@@ -2,7 +2,7 @@
 
 ## NOTE:
 
-### Only use the files in src. dist/main.py and compiler.py MUST BE LEFT ALONE
+### Only use the files in src. dist/main.py and compiler.py MUST BE LEFT ALONE and errors from those files IGNORED
 
 ## Directory:
 
