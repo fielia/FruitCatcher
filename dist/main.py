@@ -31,10 +31,10 @@ def __define__src_tree():
 			_sensitivity (float): the sensitivity value for each color.
 		"""
 		_sensitivity: float = 2
-		GRAPEFRUIT = Signature(1, 6513, 7443, 6978, 1111, 1431, 1271, _sensitivity, 0)
-		LIME = Signature(2, -6249, -5385, -5817, -3721, -3023, -3372, _sensitivity, 0)
-		LEMON = Signature(3, 2607, 3087, 2846, -3461, -3199, -3330, _sensitivity, 0)
-		ORANGE_FRUIT = Signature(4, 7581, 8071, 7826, -2049, -1809, -1929, _sensitivity, 0)		
+		GRAPEFRUIT: Signature = Signature(1, 6513, 7443, 6978, 1111, 1431, 1271, _sensitivity, 0)
+		LIME: Signature = Signature(2, -6249, -5385, -5817, -3721, -3023, -3372, _sensitivity, 0)
+		LEMON: Signature = Signature(3, 2607, 3087, 2846, -3461, -3199, -3330, _sensitivity, 0)
+		ORANGE_FRUIT: Signature = Signature(4, 7581, 8071, 7826, -2049, -1809, -1929, _sensitivity, 0)
 	
 	possible_heights: list[float] = [17, 29, 38]
 	class Tree():
@@ -72,7 +72,7 @@ def __define__src_tree():
 		Represents the orchard, and contains all the trees.
 	
 		Params:
-			_trees (List[List[Tree]]): a 2D array of the trees.
+			_trees (List[List[Tree]]): a 2D array of the trees, with a higher-value index representing a tree farther away from origin.
 		"""
 		_trees: List[List[Tree]]
 	
@@ -112,13 +112,11 @@ def __define__src_tree():
 			self._fill_third_tree(location[0])
 			return True
 		
-		def get_tree_color(self, location: tuple[int, int]) -> Signature | None:
-			if self._at_location(location):
-				return self._at_location(location).get_fruit_color()
+		def get_tree_color(self, location: tuple[int, int]) -> Signature:
+			return self._at_location(location).get_fruit_color()
 				
-		def get_tree_height(self, location: tuple[int, int]) -> float | None:
-			if self._at_location(location):
-				return self._at_location(location).get_height()
+		def get_tree_height(self, location: tuple[int, int]) -> float:
+			return self._at_location(location).get_height()
 		
 		def _fill_third_tree(self, row: int) -> None:
 			"""
@@ -205,8 +203,9 @@ def __define__src_movement():
 		
 		@staticmethod
 		def return_to_origin():
-			drive(0, -Log.get_x_distance(), -Log.get_rot_angle())
-			drive(-Log.get_y_distance(), 0, 0)
+			drive(0, -Log.get_x_distance())
+			rotate(-Log.get_rot_angle())
+			drive(-Log.get_y_distance(), 0)
 	
 	# motor names are based on top-down view with proper orientation
 	northwest_motor: Motor = Motor(Ports.PORT7, 0.2, False) # set boolean so motor spins towards the front of the robot
@@ -220,26 +219,45 @@ def __define__src_movement():
 	claw_motor = Motor(Ports.PORT12, 0.2, True)
 	door_motor = Motor(Ports.PORT1, 0.2, True)
 	
-	def drive(distance_y: float, distance_x: float, rotation_angle: float, speed: float = 40, stall: bool = True) -> None:
+	wheel_diameter: float = 100 # in mm
+	def drive(distance_y: float, distance_x: float, speed: float = 40, stall: bool = True) -> None:
 		"""
 		Drives the robot.
 	
-		Params:
+		Params (in MM):
 			distance_y (float): forward is positive, and backward is negative.
 			distance_x (float): right is positive, and left is negative.
-			rotation_angle (float): clockwise is positive, and counterclockwise is negative.
+			speed (float): the speed the wheel motors should spin (default is 40 RPM).
+			stall (bool): wait for the motion to finish before moving on (default is true).
 		"""
-		wheel_diameter: float = 0
-		degrees_y: float = distance_y / (wheel_diameter * math.pi) * 360
-		degrees_x: float = distance_x / (wheel_diameter * math.pi) * 360
-		degrees_r: float = distance_x / (wheel_diameter * math.pi) * 360 # need to solve
-	
-		northwest_motor.spin_for(FORWARD, degrees_y + degrees_x + degrees_r, DEGREES, speed, RPM, wait=False)
-		northeast_motor.spin_for(FORWARD, degrees_y - degrees_x + degrees_r, DEGREES, speed, RPM, wait=False)
-		southwest_motor.spin_for(FORWARD, degrees_y - degrees_x - degrees_r, DEGREES, speed, RPM, wait=False)
-		southeast_motor.spin_for(FORWARD, degrees_y + degrees_x - degrees_r, DEGREES, speed, RPM, wait=stall)
+		kill()
+		degrees_y: float = distance_y / (wheel_diameter * math.pi) * 360 / math.sqrt(2)
+		degrees_x: float = distance_x / (wheel_diameter * math.pi) * 360 / math.sqrt(2)
 		
-		Log.add_distance(distance_y, distance_x, rotation_angle)
+		northwest_motor.spin_for(FORWARD, degrees_y + degrees_x, DEGREES, speed, RPM, wait=False)
+		northeast_motor.spin_for(FORWARD, degrees_y - degrees_x, DEGREES, speed, RPM, wait=False)
+		southwest_motor.spin_for(FORWARD, degrees_y - degrees_x, DEGREES, speed, RPM, wait=False)
+		southeast_motor.spin_for(FORWARD, degrees_y + degrees_x, DEGREES, speed, RPM, wait=stall)
+		
+		Log.add_distance(y_distance=distance_y, x_distance=distance_x)
+	
+	def rotate(rotation_angle: float, speed: float = 40, stall: bool = True) -> None:
+		"""
+		Rotates the robot.
+	
+		Params:
+			rotation_angle (float): the angle to rotate the robot.
+			speed (float): the speed the wheel motors should spin (default is 40 RPM).
+			stall (bool): wait for the motion to finish before moving on (default is true).
+		"""
+		degrees_r: float = rotation_angle / (wheel_diameter * math.pi) * 360 # need to solve
+		
+		northwest_motor.spin_for(FORWARD, degrees_r, DEGREES, speed, RPM, wait=False)
+		northeast_motor.spin_for(FORWARD, degrees_r, DEGREES, speed, RPM, wait=False)
+		southwest_motor.spin_for(FORWARD, -degrees_r, DEGREES, speed, RPM, wait=False)
+		southeast_motor.spin_for(FORWARD, -degrees_r, DEGREES, speed, RPM, wait=stall)
+	
+		Log.add_distance(rot_angle=degrees_r)
 	
 	def move_arm(end_position: float, speed: float = 75, stall: bool = True) -> None:
 		"""
@@ -247,9 +265,10 @@ def __define__src_movement():
 	
 		Params:
 			end_position (float): the position of the arm after execution.
-			speed (float): the speed the arm should traved (default is 75 RPM).
+			speed (float): the speed the arm motor should spin (default is 75 RPM).
 			stall (bool): wait for the arm to finish moving before moving on (default is true).
 		"""
+		kill()
 		arm_motors.spin_to_position(end_position, DEGREES, speed, RPM, wait=stall)
 	
 	def move_claw(end_position: float, speed: int = 50, stall: bool = True) -> None:
@@ -258,9 +277,10 @@ def __define__src_movement():
 	
 		Params:
 			end_position (float): the position of the claw after execution.
-			speed (float): the speed the claw should traved (default is 50 RPM).
+			speed (float): the speed the claw motor should spin (default is 50 RPM).
 			stall (bool): wait for the claw to finish moving before moving on (default is true).
 		"""
+		kill()
 		claw_motor.spin_to_position(end_position, DEGREES, speed, RPM, wait=stall)
 	
 	def squeeze() -> None:
@@ -279,6 +299,7 @@ def __define__src_movement():
 			outwards (int): 1 = spin out, -1 = spin in, 0 = don't spin.
 			speed (float): the speed to spin the door (default is 75 RPM).
 		"""
+		kill()
 		zero_position: vexnumber = 0
 		door_motor.set_position(zero_position, DEGREES)
 		door_motor.spin_for(FORWARD, outwards * angle, DEGREES, speed, RPM, wait=False)
@@ -316,20 +337,20 @@ def __define__src_routes():
 	def _go_to_row(row: int):
 		match row:
 			case 0:
-				drive(1, 0, 0)
+				drive(100, 0) # in mm
 			case 1:
-				drive(1, 0, 0)
+				drive(1000, 0) # in mm
 			case 2:
-				drive(1, 0, 0)
+				drive(1930, 0) # in mm
 	
 	def _go_to_col(col: int):
 		match col:
 			case 0:
-				drive(0, 1, 0)
+				drive(0, 430) # in mm
 			case 1:
-				drive(0, 1, 0)
+				drive(0, 985) # in mm
 			case 2:
-				drive(0, 1, 0)
+				drive(0, 1530) # in mm
 
 	l = locals()
 	__ModuleCache__["src_routes"] = __ModuleNamespace__(l)
@@ -342,7 +363,7 @@ def __define__src_main():
 	#                                                                              #
 	# 	Module:       main.py                                                      #
 	# 	Author:       ritvik                                                       #
-	# 	Created:      1/15/2024, 12:03:14 PM                                       #
+	# 	Created:      2/14/2024, 8:33:31 AM                                       #
 	# 	Description:  V5 project                                                   #
 	#                                                                              #
 	# ---------------------------------------------------------------------------- #
@@ -370,16 +391,22 @@ def __define__src_main():
 	
 	orchard = Orchard()
 	
+	CLAW_CHOP_POSITION: float = 0 # position of the claw right after chopping a fruit
+	
+	# start robot at the corner near the exit sign
+	
 	def activate_control():
 		"""
 		What the robot executes.
 		"""
+		nonlocal orchard
 		while button.pressing():
 			wait(5)
-		go_to((0, 0))
-		move_arm(5)
-		move_claw(10)
-		scan_fruit((0, 0))
+		current_tree: tuple[int, int] = (0, 0)
+		go_to(current_tree)
+		scan_fruit(current_tree)
+		move_arm(orchard.get_tree_height(current_tree))
+		move_claw(CLAW_CHOP_POSITION)
 		move_claw(0, stall=False)
 		move_arm(0, stall=False)
 		Log.return_to_origin()
@@ -425,7 +452,7 @@ def __define__src_main():
 	
 	def convert_height(old_height: float) -> float:
 		"""
-		Converts the raw ultrasonic sensor output to tree heights.
+		Converts the raw ultrasonic sensor output to tree heights (this value is the position the arm will be in to grab fruits).
 	
 		Params:
 			old_height (float): the raw value from the ultrasonic sensor.
@@ -433,7 +460,9 @@ def __define__src_main():
 		Returns:
 			float: the tree height.
 		"""
-		return old_height
+		new_height: float = 0
+	
+		return new_height
 	
 	# initialize testing (will be triggered with button press and pre-run checks will be run here)
 	button.pressed(activate_control)
@@ -444,7 +473,7 @@ def __define__src_main():
 
 try: __define__src_main()
 except Exception as e:
-	s = [(25,"src\tree.py"),(165,"src\movement.py"),(310,"src\routes.py"),(342,"src\main.py"),(444,"<module>")]
+	s = [(25,"src\tree.py"),(163,"src\movement.py"),(331,"src\routes.py"),(363,"src\main.py"),(473,"<module>")]
 	def f(x: str):
 		if not x.startswith('  File'): return x
 		l = int(match('.+line (\\d+),.+', x).group(1))
