@@ -8,36 +8,32 @@ def go_to(location: tuple[int, int]):
 
 def _go_to_row(row: int):
 	if at_exit:
-		match row:
-			case 0:
-				drive(100, 0) # in mm
-			case 1:
-				drive(1000, 0) # in mm
-			case 2:
-				drive(1930, 0) # in mm
+		if row == 0:
+			drive(100, 0) # in mm
+		elif row == 1:
+			drive(1000, 0) # in mm
+		elif row == 2:
+			drive(1930, 0) # in mm
 	else:
-		match row:
-			case 0:
-				drive(720, 0) # in mm
-			case 1:
-				drive(1605, 0) # in mm
-			case 2:
-				drive(2490, 0) # in mm
+		if row == 0:
+			drive(720, 0) # in mm
+		elif row == 1:
+			drive(1605, 0) # in mm
+		elif row == 2:
+			drive(2490, 0) # in mm
 
 def _go_to_col(col: int):
 	if at_exit:
-		match col:
-			case 0:
-				drive(0, 420) # in mm
-			case 1:
-				drive(0, 955) # in mm
-			case 2:
-				drive(0, 1510) # in mm
+		if col == 0:
+			drive(0, 420) # in mm
+		elif col == 1:
+			drive(0, 955) # in mm
+		elif col == 2:
+			drive(0, 1510) # in mm
 	else:
-		match col:
-			case 0:
-				drive(0, 430) # in mm
-			case 1:
-				drive(0, 985) # in mm
-			case 2:
-				drive(0, 1530) # in mm
+		if col == 0:
+			drive(0, 430) # in mm
+		elif col == 1:
+			drive(0, 985) # in mm
+		elif col == 2:
+			drive(0, 1530) # in mm

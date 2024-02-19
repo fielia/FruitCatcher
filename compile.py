@@ -18,20 +18,15 @@ ROOT = '__root__'
 TRACE_IMPORTS = 'from io import StringIO\nfrom sys import print_exception\nfrom re import match\nfrom sys import exit\n'
 HEADER = f'''# Packed by compile.py
 {TRACE_IMPORTS if args.trace else ''}
-
 __ModuleCache__ = {{}}
-
 class __ModuleNamespace__():
 	def __init__(self, kwargs):
 		for name in kwargs:
 			setattr(self, name, kwargs[name])
-
 	def __contains__(self, key):
 		return key in self.__dict__
-
 	def __iter__(self):
 		return self.__dict__.__iter__()
-
 '''
 
 def compile():
@@ -64,6 +59,7 @@ def compile():
 				if sline.startswith('import'):
 					submodule_scriptname = line.removeprefix('import ').strip()
 					submodule_path = './' + submodule_scriptname.replace('.', '/') + '.py'
+
 					submodule_name = moduleify(module_dir / submodule_path)
 		
 					if submodule_name != None:
@@ -73,6 +69,10 @@ def compile():
 
 				elif sline.startswith('from '):
 					submodule_path, submodule_imports = line.removeprefix('from ').split('import')
+
+					if submodule_path.strip() == 'vex':
+						continue
+
 					submodule_path = './' + submodule_path.strip().replace('.', '/') + '.py'
 					submodule_imports = [x.strip() for x in submodule_imports.split(',')]
 					submodule_name = moduleify(module_dir / submodule_path)
@@ -88,20 +88,28 @@ def compile():
 					else:
 						out += '\t' + line + '\n'
 
-				elif sline.startswith('class'):
-					module_classes.append(sline.removeprefix('class ').split('(')[0])
+				elif line.startswith('class'):
+					module_classes.append(sline.removeprefix('class ').split('(')[0].removesuffix(':'))
+					out += '\t' + line + '\n'
+				
+				elif line.startswith('def'):
+					module_classes.append(sline.removeprefix('def ').split('(')[0].removesuffix(':'))
 					out += '\t' + line + '\n'
 
 				elif sline.startswith('global'):
 					out += '\t' + line.replace('global', 'nonlocal', 1) + '\n'
 
 				else:
+					if line.count('=') == 1:
+						vname = line.split('=', 1)[0]
+						if not (vname.startswith('\t') or vname.startswith(' ') or vname.startswith('#')):
+							module_classes.append(vname.strip())
+
 					out += '\t' + line + '\n'
-		
-		# out += '\treturn __ModuleNamespace(locals())\n'
+
 		out += '\n\tl = locals()\n'
 		for cls in module_classes:
-			out += f'\tl["{cls}"] = {cls}\n' # {k: locals()[k] if k in locals() else globals()[k] for k in __all__}
+			out += f'\tl["{cls}"] = {cls}\n'
 		out += f'\t__ModuleCache__["{module_name}"] = __ModuleNamespace__(l)\n'
 		out += f'\treturn __ModuleCache__["{module_name}"]\n'
 		compiled_modules.append({ "name": module_name, "value": out, "path": path })

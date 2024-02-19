@@ -19,10 +19,10 @@ brain = Brain()
 log = Log()
 
 imu = Inertial(Ports.PORT20)
-button = Bumper(brain.three_wire_port.d)
+button = Bumper(brain.three_wire_port.b)
 range_finder = Sonar(brain.three_wire_port.e) # NOTE: has a range of 30 to 3000 MM
 fruit_sonic = Sonar(brain.three_wire_port.a)
-camera = Vision(Ports.PORT10, 43, FruitColor.GRAPEFRUIT, FruitColor.LIME, FruitColor.LEMON, FruitColor.ORANGE_FRUIT)
+camera = Vision(Ports.PORT14, 43, FruitColor.GRAPEFRUIT, FruitColor.LIME, FruitColor.LEMON, FruitColor.ORANGE_FRUIT)
 
 orchard = Orchard()
 
@@ -30,7 +30,10 @@ CLAW_CHOP_POSITION: float = 0 # position of the claw right after chopping a frui
 
 # start robot at the corner near the exit sign
 
-def activate_control():
+def testing():
+	drive(10, 0)
+
+def activate_auto():
 	"""
 	What the robot executes.
 	"""
@@ -107,4 +110,4 @@ while imu.is_calibrating():
 brain.screen.clear_screen()
 brain.screen.print_at("Button Ready", x=50, y=50)
 
-button.pressed(activate_control)
+button.pressed(testing)

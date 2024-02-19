@@ -52,9 +52,7 @@ northeast_motor: Motor = Motor(Ports.PORT8, 0.2, False) # set boolean so motor s
 southwest_motor: Motor = Motor(Ports.PORT9, 0.2, True) # set boolean so motor spins towards the front of the robot
 southeast_motor: Motor = Motor(Ports.PORT10, 0.2, True) # set boolean so motor spins towards the front of the robot
 
-arm_motor_1 = Motor(Ports.PORT18, 0.2, True)
-arm_motor_2 = Motor(Ports.PORT14, 0.2, True)
-arm_motors = MotorGroup(arm_motor_1, arm_motor_2)
+arm_motor = Motor(Ports.PORT18, 0.2, True)
 claw_motor = Motor(Ports.PORT12, 0.2, True)
 door_motor = Motor(Ports.PORT1, 0.2, True)
 
@@ -109,7 +107,7 @@ def move_arm(end_position: float, speed: float = 75, stall: bool = True) -> None
 		stall (bool): wait for the arm to finish moving before moving on (default is true).
 	"""
 	kill()
-	arm_motors.spin_to_position(end_position, DEGREES, speed, RPM, wait=stall)
+	arm_motor.spin_to_position(end_position, DEGREES, speed, RPM, wait=stall)
 
 def move_claw(end_position: float, speed: int = 50, stall: bool = True) -> None:
 	"""

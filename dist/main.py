@@ -3,6 +3,7 @@ from io import StringIO
 from sys import print_exception
 from re import match
 from sys import exit
+from vex import *
 
 
 __ModuleCache__ = {}
@@ -21,7 +22,6 @@ class __ModuleNamespace__():
 def __define__src_tree():
 	if "src_tree" in __ModuleCache__: return __ModuleCache__["src_tree"]
 	__name__ = "__src_tree__"
-	from vex import *
 	
 	class FruitColor():
 		"""
@@ -159,7 +159,6 @@ def __define__src_tree():
 def __define__src_movement():
 	if "src_movement" in __ModuleCache__: return __ModuleCache__["src_movement"]
 	__name__ = "__src_movement__"
-	from vex import *
 	
 	class Log():
 		"""
@@ -213,9 +212,7 @@ def __define__src_movement():
 	southwest_motor: Motor = Motor(Ports.PORT9, 0.2, True) # set boolean so motor spins towards the front of the robot
 	southeast_motor: Motor = Motor(Ports.PORT10, 0.2, True) # set boolean so motor spins towards the front of the robot
 	
-	arm_motor_1 = Motor(Ports.PORT18, 0.2, True)
-	arm_motor_2 = Motor(Ports.PORT14, 0.2, True)
-	arm_motors = MotorGroup(arm_motor_1, arm_motor_2)
+	arm_motor = Motor(Ports.PORT18, 0.2, True)
 	claw_motor = Motor(Ports.PORT12, 0.2, True)
 	door_motor = Motor(Ports.PORT1, 0.2, True)
 	
@@ -270,7 +267,7 @@ def __define__src_movement():
 			stall (bool): wait for the arm to finish moving before moving on (default is true).
 		"""
 		kill()
-		arm_motors.spin_to_position(end_position, DEGREES, speed, RPM, wait=stall)
+		arm_motor.spin_to_position(end_position, DEGREES, speed, RPM, wait=stall)
 	
 	def move_claw(end_position: float, speed: int = 50, stall: bool = True) -> None:
 		"""
@@ -339,39 +336,35 @@ def __define__src_routes():
 	
 	def _go_to_row(row: int):
 		if at_exit:
-			match row:
-				case 0:
-					drive(100, 0) # in mm
-				case 1:
-					drive(1000, 0) # in mm
-				case 2:
-					drive(1930, 0) # in mm
+			if row == 0:
+				drive(100, 0) # in mm
+			elif row == 1:
+				drive(1000, 0) # in mm
+			elif row == 2:
+				drive(1930, 0) # in mm
 		else:
-			match row:
-				case 0:
-					drive(720, 0) # in mm
-				case 1:
-					drive(1605, 0) # in mm
-				case 2:
-					drive(2490, 0) # in mm
+			if row == 0:
+				drive(720, 0) # in mm
+			elif row == 1:
+				drive(1605, 0) # in mm
+			elif row == 2:
+				drive(2490, 0) # in mm
 	
 	def _go_to_col(col: int):
 		if at_exit:
-			match col:
-				case 0:
-					drive(0, 420) # in mm
-				case 1:
-					drive(0, 955) # in mm
-				case 2:
-					drive(0, 1510) # in mm
+			if col == 0:
+				drive(0, 420) # in mm
+			elif col == 1:
+				drive(0, 955) # in mm
+			elif col == 2:
+				drive(0, 1510) # in mm
 		else:
-			match col:
-				case 0:
-					drive(0, 430) # in mm
-				case 1:
-					drive(0, 985) # in mm
-				case 2:
-					drive(0, 1530) # in mm
+			if col == 0:
+				drive(0, 430) # in mm
+			elif col == 1:
+				drive(0, 985) # in mm
+			elif col == 2:
+				drive(0, 1530) # in mm
 
 	l = locals()
 	__ModuleCache__["src_routes"] = __ModuleNamespace__(l)
@@ -390,7 +383,6 @@ def __define__src_main():
 	# ---------------------------------------------------------------------------- #
 	
 	# Library imports
-	from vex import *
 	__root__src_tree = __define__src_tree()
 	FruitColor = __root__src_tree.FruitColor
 	Orchard = __root__src_tree.Orchard
@@ -405,10 +397,10 @@ def __define__src_main():
 	log = Log()
 	
 	imu = Inertial(Ports.PORT20)
-	button = Bumper(brain.three_wire_port.d)
+	button = Bumper(brain.three_wire_port.b)
 	range_finder = Sonar(brain.three_wire_port.e) # NOTE: has a range of 30 to 3000 MM
 	fruit_sonic = Sonar(brain.three_wire_port.a)
-	camera = Vision(Ports.PORT10, 43, FruitColor.GRAPEFRUIT, FruitColor.LIME, FruitColor.LEMON, FruitColor.ORANGE_FRUIT)
+	camera = Vision(Ports.PORT14, 43, FruitColor.GRAPEFRUIT, FruitColor.LIME, FruitColor.LEMON, FruitColor.ORANGE_FRUIT)
 	
 	orchard = Orchard()
 	
@@ -416,7 +408,10 @@ def __define__src_main():
 	
 	# start robot at the corner near the exit sign
 	
-	def activate_control():
+	def testing():
+		drive(10, 0)
+	
+	def activate_auto():
 		"""
 		What the robot executes.
 		"""
@@ -493,7 +488,7 @@ def __define__src_main():
 	brain.screen.clear_screen()
 	brain.screen.print_at("Button Ready", x=50, y=50)
 	
-	button.pressed(activate_control)
+	button.pressed(testing)
 
 	l = locals()
 	__ModuleCache__["src_main"] = __ModuleNamespace__(l)
@@ -501,7 +496,7 @@ def __define__src_main():
 
 try: __define__src_main()
 except Exception as e:
-	s = [(25,"src\tree.py"),(163,"src\movement.py"),(332,"src\routes.py"),(384,"src\main.py"),(501,"<module>")]
+	s = [(25,"src\tree.py"),(163,"src\movement.py"),(330,"src\routes.py"),(378,"src\main.py"),(498,"<module>")]
 	def f(x: str):
 		if not x.startswith('  File'): return x
 		l = int(match('.+line (\\d+),.+', x).group(1))
