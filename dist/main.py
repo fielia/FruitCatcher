@@ -22,6 +22,7 @@ def __define__src_tree():
 	if "src_tree" in __ModuleCache__: return __ModuleCache__["src_tree"]
 	__name__ = "__src_tree__"
 	from vex import *
+	
 	class FruitColor():
 		"""
 		An enum to better access the colors.
@@ -201,6 +202,11 @@ def __define__src_movement():
 		@staticmethod
 		def get_rot_angle() -> float:
 			return Log._rot_angle
+		
+		@staticmethod
+		def return_to_origin():
+			drive(0, -Log.get_x_distance(), -Log.get_rot_angle())
+			drive(-Log.get_y_distance(), 0, 0)
 	
 	# motor names are based on top-down view with proper orientation
 	northwest_motor: Motor = Motor(Ports.PORT7, 0.2, False) # set boolean so motor spins towards the front of the robot
@@ -300,6 +306,30 @@ def __define__src_movement():
 def __define__src_routes():
 	if "src_routes" in __ModuleCache__: return __ModuleCache__["src_routes"]
 	__name__ = "__src_routes__"
+	__root__src_movement = __define__src_movement()
+	for k in __root__src_movement: locals()[k] = __root__src_movement[k]
+	
+	def go_to(location: tuple[int, int]):
+		_go_to_row(location[0])
+		_go_to_col(location[1])
+	
+	def _go_to_row(row: int):
+		match row:
+			case 0:
+				drive(1, 0, 0)
+			case 1:
+				drive(1, 0, 0)
+			case 2:
+				drive(1, 0, 0)
+	
+	def _go_to_col(col: int):
+		match col:
+			case 0:
+				drive(0, 1, 0)
+			case 1:
+				drive(0, 1, 0)
+			case 2:
+				drive(0, 1, 0)
 
 	l = locals()
 	__ModuleCache__["src_routes"] = __ModuleNamespace__(l)
@@ -346,13 +376,13 @@ def __define__src_main():
 		"""
 		while button.pressing():
 			wait(5)
-		drive(100, 0, 0)
+		go_to((0, 0))
 		move_arm(5)
 		move_claw(10)
+		scan_fruit((0, 0))
 		move_claw(0, stall=False)
 		move_arm(0, stall=False)
-		drive(-100, 0, 0)
-		scan_fruit((0, 0))
+		Log.return_to_origin()
 	
 	def get_color() -> Signature:
 		"""
@@ -414,7 +444,7 @@ def __define__src_main():
 
 try: __define__src_main()
 except Exception as e:
-	s = [(25,"src\tree.py"),(164,"src\movement.py"),(304,"src\routes.py"),(312,"src\main.py"),(414,"<module>")]
+	s = [(25,"src\tree.py"),(165,"src\movement.py"),(310,"src\routes.py"),(342,"src\main.py"),(444,"<module>")]
 	def f(x: str):
 		if not x.startswith('  File'): return x
 		l = int(match('.+line (\\d+),.+', x).group(1))

@@ -39,6 +39,12 @@ class Log():
 	@staticmethod
 	def get_rot_angle() -> float:
 		return Log._rot_angle
+	
+	@staticmethod
+	def return_to_origin():
+		drive(0, -Log.get_x_distance())
+		rotate(-Log.get_rot_angle())
+		drive(-Log.get_y_distance(), 0)
 
 # motor names are based on top-down view with proper orientation
 northwest_motor: Motor = Motor(Ports.PORT7, 0.2, False) # set boolean so motor spins towards the front of the robot
@@ -52,26 +58,45 @@ arm_motors = MotorGroup(arm_motor_1, arm_motor_2)
 claw_motor = Motor(Ports.PORT12, 0.2, True)
 door_motor = Motor(Ports.PORT1, 0.2, True)
 
-def drive(distance_y: float, distance_x: float, rotation_angle: float, speed: float = 40, stall: bool = True) -> None:
+wheel_diameter: float = 100 # in mm
+def drive(distance_y: float, distance_x: float, speed: float = 40, stall: bool = True) -> None:
 	"""
 	Drives the robot.
 
-	Params:
+	Params (in MM):
 		distance_y (float): forward is positive, and backward is negative.
 		distance_x (float): right is positive, and left is negative.
-		rotation_angle (float): clockwise is positive, and counterclockwise is negative.
+		speed (float): the speed the wheel motors should spin (default is 40 RPM).
+		stall (bool): wait for the motion to finish before moving on (default is true).
 	"""
-	wheel_diameter: float = 0
-	degrees_y: float = distance_y / (wheel_diameter * math.pi) * 360
-	degrees_x: float = distance_x / (wheel_diameter * math.pi) * 360
-	degrees_r: float = distance_x / (wheel_diameter * math.pi) * 360 # need to solve
-
-	northwest_motor.spin_for(FORWARD, degrees_y + degrees_x + degrees_r, DEGREES, speed, RPM, wait=False)
-	northeast_motor.spin_for(FORWARD, degrees_y - degrees_x + degrees_r, DEGREES, speed, RPM, wait=False)
-	southwest_motor.spin_for(FORWARD, degrees_y - degrees_x - degrees_r, DEGREES, speed, RPM, wait=False)
-	southeast_motor.spin_for(FORWARD, degrees_y + degrees_x - degrees_r, DEGREES, speed, RPM, wait=stall)
+	kill()
+	degrees_y: float = distance_y / (wheel_diameter * math.pi) * 360 / math.sqrt(2)
+	degrees_x: float = distance_x / (wheel_diameter * math.pi) * 360 / math.sqrt(2)
 	
-	Log.add_distance(distance_y, distance_x, rotation_angle)
+	northwest_motor.spin_for(FORWARD, degrees_y + degrees_x, DEGREES, speed, RPM, wait=False)
+	northeast_motor.spin_for(FORWARD, degrees_y - degrees_x, DEGREES, speed, RPM, wait=False)
+	southwest_motor.spin_for(FORWARD, degrees_y - degrees_x, DEGREES, speed, RPM, wait=False)
+	southeast_motor.spin_for(FORWARD, degrees_y + degrees_x, DEGREES, speed, RPM, wait=stall)
+	
+	Log.add_distance(y_distance=distance_y, x_distance=distance_x)
+
+def rotate(rotation_angle: float, speed: float = 40, stall: bool = True) -> None:
+	"""
+	Rotates the robot.
+
+	Params:
+		rotation_angle (float): the angle to rotate the robot.
+		speed (float): the speed the wheel motors should spin (default is 40 RPM).
+		stall (bool): wait for the motion to finish before moving on (default is true).
+	"""
+	degrees_r: float = rotation_angle / (wheel_diameter * math.pi) * 360 # need to solve
+	
+	northwest_motor.spin_for(FORWARD, degrees_r, DEGREES, speed, RPM, wait=False)
+	northeast_motor.spin_for(FORWARD, degrees_r, DEGREES, speed, RPM, wait=False)
+	southwest_motor.spin_for(FORWARD, -degrees_r, DEGREES, speed, RPM, wait=False)
+	southeast_motor.spin_for(FORWARD, -degrees_r, DEGREES, speed, RPM, wait=stall)
+
+	Log.add_distance(rot_angle=degrees_r)
 
 def move_arm(end_position: float, speed: float = 75, stall: bool = True) -> None:
 	"""
@@ -79,9 +104,10 @@ def move_arm(end_position: float, speed: float = 75, stall: bool = True) -> None
 
 	Params:
 		end_position (float): the position of the arm after execution.
-		speed (float): the speed the arm should traved (default is 75 RPM).
+		speed (float): the speed the arm motor should spin (default is 75 RPM).
 		stall (bool): wait for the arm to finish moving before moving on (default is true).
 	"""
+	kill()
 	arm_motors.spin_to_position(end_position, DEGREES, speed, RPM, wait=stall)
 
 def move_claw(end_position: float, speed: int = 50, stall: bool = True) -> None:
@@ -90,9 +116,10 @@ def move_claw(end_position: float, speed: int = 50, stall: bool = True) -> None:
 
 	Params:
 		end_position (float): the position of the claw after execution.
-		speed (float): the speed the claw should traved (default is 50 RPM).
+		speed (float): the speed the claw motor should spin (default is 50 RPM).
 		stall (bool): wait for the claw to finish moving before moving on (default is true).
 	"""
+	kill()
 	claw_motor.spin_to_position(end_position, DEGREES, speed, RPM, wait=stall)
 
 def squeeze() -> None:
@@ -111,6 +138,7 @@ def toggleDoor(angle: int = 360, outwards: int = 0, speed: float = 75) -> None:
 		outwards (int): 1 = spin out, -1 = spin in, 0 = don't spin.
 		speed (float): the speed to spin the door (default is 75 RPM).
 	"""
+	kill()
 	zero_position: vexnumber = 0
 	door_motor.set_position(zero_position, DEGREES)
 	door_motor.spin_for(FORWARD, outwards * angle, DEGREES, speed, RPM, wait=False)

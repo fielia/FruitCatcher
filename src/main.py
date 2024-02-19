@@ -2,7 +2,7 @@
 #                                                                              #
 # 	Module:       main.py                                                      #
 # 	Author:       ritvik                                                       #
-# 	Created:      1/15/2024, 12:03:14 PM                                       #
+# 	Created:      2/14/2024, 8:33:31 AM                                       #
 # 	Description:  V5 project                                                   #
 #                                                                              #
 # ---------------------------------------------------------------------------- #
@@ -26,19 +26,25 @@ camera = Vision(Ports.PORT10, 43, FruitColor.GRAPEFRUIT, FruitColor.LIME, FruitC
 
 orchard = Orchard()
 
+CLAW_CHOP_POSITION: float = 0 # position of the claw right after chopping a fruit
+
+# start robot at the corner near the exit sign
+
 def activate_control():
 	"""
 	What the robot executes.
 	"""
+	global orchard
 	while button.pressing():
 		wait(5)
-	drive(100, 0, 0)
-	move_arm(5)
-	move_claw(10)
+	current_tree: tuple[int, int] = (0, 0)
+	go_to(current_tree)
+	scan_fruit(current_tree)
+	move_arm(orchard.get_tree_height(current_tree))
+	move_claw(CLAW_CHOP_POSITION)
 	move_claw(0, stall=False)
 	move_arm(0, stall=False)
-	drive(-100, 0, 0)
-	scan_fruit((0, 0))
+	Log.return_to_origin()
 
 def get_color() -> Signature:
 	"""
@@ -81,7 +87,7 @@ def scan_fruit(location: tuple[int, int]) -> None:
 
 def convert_height(old_height: float) -> float:
 	"""
-	Converts the raw ultrasonic sensor output to tree heights.
+	Converts the raw ultrasonic sensor output to tree heights (this value is the position the arm will be in to grab fruits).
 
 	Params:
 		old_height (float): the raw value from the ultrasonic sensor.
@@ -89,7 +95,9 @@ def convert_height(old_height: float) -> float:
 	Returns:
 		float: the tree height.
 	"""
-	return old_height
+	new_height: float = 0
+
+	return new_height
 
 # initialize testing (will be triggered with button press and pre-run checks will be run here)
 button.pressed(activate_control)

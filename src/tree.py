@@ -1,4 +1,5 @@
 from vex import *
+
 class FruitColor():
 	"""
 	An enum to better access the colors.
@@ -7,10 +8,10 @@ class FruitColor():
 		_sensitivity (float): the sensitivity value for each color.
 	"""
 	_sensitivity: float = 2
-	GRAPEFRUIT = Signature(1, 6513, 7443, 6978, 1111, 1431, 1271, _sensitivity, 0)
-	LIME = Signature(2, -6249, -5385, -5817, -3721, -3023, -3372, _sensitivity, 0)
-	LEMON = Signature(3, 2607, 3087, 2846, -3461, -3199, -3330, _sensitivity, 0)
-	ORANGE_FRUIT = Signature(4, 7581, 8071, 7826, -2049, -1809, -1929, _sensitivity, 0)		
+	GRAPEFRUIT: Signature = Signature(1, 6513, 7443, 6978, 1111, 1431, 1271, _sensitivity, 0)
+	LIME: Signature = Signature(2, -6249, -5385, -5817, -3721, -3023, -3372, _sensitivity, 0)
+	LEMON: Signature = Signature(3, 2607, 3087, 2846, -3461, -3199, -3330, _sensitivity, 0)
+	ORANGE_FRUIT: Signature = Signature(4, 7581, 8071, 7826, -2049, -1809, -1929, _sensitivity, 0)
 
 possible_heights: list[float] = [17, 29, 38]
 class Tree():
@@ -48,7 +49,7 @@ class Orchard():
 	Represents the orchard, and contains all the trees.
 
 	Params:
-		_trees (List[List[Tree]]): a 2D array of the trees.
+		_trees (List[List[Tree]]): a 2D array of the trees, with a higher-value index representing a tree farther away from origin.
 	"""
 	_trees: List[List[Tree]]
 
@@ -88,13 +89,11 @@ class Orchard():
 		self._fill_third_tree(location[0])
 		return True
 	
-	def get_tree_color(self, location: tuple[int, int]) -> Signature | None:
-		if self._at_location(location):
-			return self._at_location(location).get_fruit_color()
+	def get_tree_color(self, location: tuple[int, int]) -> Signature:
+		return self._at_location(location).get_fruit_color()
 			
-	def get_tree_height(self, location: tuple[int, int]) -> float | None:
-		if self._at_location(location):
-			return self._at_location(location).get_height()
+	def get_tree_height(self, location: tuple[int, int]) -> float:
+		return self._at_location(location).get_height()
 	
 	def _fill_third_tree(self, row: int) -> None:
 		"""
