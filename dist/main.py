@@ -250,7 +250,8 @@ def __define__src_movement():
 			speed (float): the speed the wheel motors should spin (default is 40 RPM).
 			stall (bool): wait for the motion to finish before moving on (default is true).
 		"""
-		degrees_r: float = rotation_angle / (wheel_diameter * math.pi) * 360 # need to solve
+		robot_diameter: float = 380 # in mm
+		degrees_r: float = rotation_angle / (robot_diameter * math.pi) / (wheel_diameter * math.pi) * 360
 		
 		northwest_motor.spin_for(FORWARD, degrees_r, DEGREES, speed, RPM, wait=False)
 		northeast_motor.spin_for(FORWARD, degrees_r, DEGREES, speed, RPM, wait=False)
@@ -330,27 +331,47 @@ def __define__src_routes():
 	__root__src_movement = __define__src_movement()
 	for k in __root__src_movement: locals()[k] = __root__src_movement[k]
 	
+	at_exit: bool = True # start corner of the robot (exit or opposite of exit)
+	
 	def go_to(location: tuple[int, int]):
 		_go_to_row(location[0])
 		_go_to_col(location[1])
 	
 	def _go_to_row(row: int):
-		match row:
-			case 0:
-				drive(100, 0) # in mm
-			case 1:
-				drive(1000, 0) # in mm
-			case 2:
-				drive(1930, 0) # in mm
+		if at_exit:
+			match row:
+				case 0:
+					drive(100, 0) # in mm
+				case 1:
+					drive(1000, 0) # in mm
+				case 2:
+					drive(1930, 0) # in mm
+		else:
+			match row:
+				case 0:
+					drive(720, 0) # in mm
+				case 1:
+					drive(1605, 0) # in mm
+				case 2:
+					drive(2490, 0) # in mm
 	
 	def _go_to_col(col: int):
-		match col:
-			case 0:
-				drive(0, 430) # in mm
-			case 1:
-				drive(0, 985) # in mm
-			case 2:
-				drive(0, 1530) # in mm
+		if at_exit:
+			match col:
+				case 0:
+					drive(0, 420) # in mm
+				case 1:
+					drive(0, 955) # in mm
+				case 2:
+					drive(0, 1510) # in mm
+		else:
+			match col:
+				case 0:
+					drive(0, 430) # in mm
+				case 1:
+					drive(0, 985) # in mm
+				case 2:
+					drive(0, 1530) # in mm
 
 	l = locals()
 	__ModuleCache__["src_routes"] = __ModuleNamespace__(l)
@@ -465,6 +486,13 @@ def __define__src_main():
 		return new_height
 	
 	# initialize testing (will be triggered with button press and pre-run checks will be run here)
+	imu.calibrate()
+	brain.screen.print_at("IMU Calibrating...", x=50, y=50)
+	while imu.is_calibrating():
+		wait(100)
+	brain.screen.clear_screen()
+	brain.screen.print_at("Button Ready", x=50, y=50)
+	
 	button.pressed(activate_control)
 
 	l = locals()
@@ -473,7 +501,7 @@ def __define__src_main():
 
 try: __define__src_main()
 except Exception as e:
-	s = [(25,"src\tree.py"),(163,"src\movement.py"),(331,"src\routes.py"),(363,"src\main.py"),(473,"<module>")]
+	s = [(25,"src\tree.py"),(163,"src\movement.py"),(332,"src\routes.py"),(384,"src\main.py"),(501,"<module>")]
 	def f(x: str):
 		if not x.startswith('  File'): return x
 		l = int(match('.+line (\\d+),.+', x).group(1))

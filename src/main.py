@@ -100,4 +100,11 @@ def convert_height(old_height: float) -> float:
 	return new_height
 
 # initialize testing (will be triggered with button press and pre-run checks will be run here)
+imu.calibrate()
+brain.screen.print_at("IMU Calibrating...", x=50, y=50)
+while imu.is_calibrating():
+	wait(100)
+brain.screen.clear_screen()
+brain.screen.print_at("Button Ready", x=50, y=50)
+
 button.pressed(activate_control)
