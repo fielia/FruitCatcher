@@ -27,19 +27,33 @@ arm_motor = Motor(Ports.PORT18, 0.2, True)
 claw_motor = Motor(Ports.PORT12, 0.2, True)
 door_motor = Motor(Ports.PORT1, 0.2, True)
 imu = Inertial(Ports.PORT20)
-basket_sensor = Light(brain.three_wire_port.a)
 
-button = Bumper(brain.three_wire_port.b)
+basket_sensor = Light(brain.three_wire_port.b)
+button = Bumper(brain.three_wire_port.a)
 front_range_finder = Sonar(brain.three_wire_port.e) # NOTE: has a range of 30 to 3000 MM
 left_range_finder = Sonar(brain.three_wire_port.g)
 fruit_range_finder = Sonar(brain.three_wire_port.c)
+
+#Color Calibration
+#SENSITIVITY = 2
+
+Vision14__GWEEN = Signature(1, -5317, -4899, -5108, -4327, -3919, -4122, 2.5, 0)
+Vision14__YELER = Signature(2, 2339, 2675, 2506, -4041, -3735, -3888, 2.5, 0)
+Vision14__ORANG = Signature(3, 7785, 8071, 7928, -2491, -2223, -2356, 2.5, 0)
+COLORS = [Vision14__GWEEN, Vision14__YELER, Vision14__ORANG]
+COLOR_STRINGS = ["LIME", "LEMON", "ORANGE"]
+
+#Vision Defined
+camera = Vision(Ports.PORT14, 50, Vision14__GWEEN, Vision14__YELER, Vision14__ORANG)
 
 IDLE = 0
 DRIVE_TO_WALL = 1
 FOLLOW_WALL = 2
 SCAN_FOR_BINS = 3
-DONE = 4
-bot_state = IDLE
+DRIVE_TO_BINS = 4
+DROP_FRUIT = 5
+DONE = -1
+bot_state = SCAN_FOR_BINS
 
 
 controller: Controller = Controller()
@@ -58,7 +72,7 @@ def drive_for(distance_x: float, distance_y: float, rotation_angle: float, speed
 	southwest_motor.spin_for(FORWARD, degrees_x - degrees_y - degrees_r, DEGREES, speed, RPM, wait=False)
 	southeast_motor.spin_for(FORWARD, degrees_x + degrees_y - degrees_r, DEGREES, speed, RPM, wait=True)
 
-def spin(forward: float, sideways: float, spin: float, speed: float = 40, stall: bool = True):
+def spin(forward: float, sideways: float, spin: float):
 	# northwest_motor.spin()
 	northwest_motor.spin(FORWARD, forward + sideways + spin, RPM)
 	northeast_motor.spin(FORWARD, forward - sideways + spin, RPM)
@@ -100,7 +114,7 @@ def drive_to_wall():
 
 	dist = left_range_finder.distance(DistanceUnits.CM)
 	#print(dist)
-	if dist>15:
+	if abs(dist-15) > 2:
 		orientation = imu.rotation()
 		spin_error = orientation*-0.2
 		error = dist*.75
@@ -145,17 +159,77 @@ def follow_wall():
 def scan_for_bins():
 	global bot_state
 
+	# adjust distance from the bins
+	dist = front_range_finder.distance(DistanceUnits.CM)
+	error = 10 - dist
+	effort = error * 2
+
+	if abs(error) < 2: # if we are position correctly away from the bins
+		# scan for specific bin color
+		if foundObject("LIME"):
+			blob, color = determineColor("LIME")
+			side_effort = (blob.centerX-150) * 0.1
+			spin(side_effort, effort, 0)
+			if side_effort < 20:
+				# if bin is found, move forward and transition to dropping fruit
+				stop()
+				print("SCAN_FOR_BINS -> DRIVE_TO_BINS")
+				bot_state = DRIVE_TO_BINS
+		else:
+			spin(-10, effort, 0)
+	else:
+		spin(0, effort, 0)
+
+def drive_to_bins():
+	global bot_state
+
+	dist = front_range_finder.distance(DistanceUnits.CM)
+	#print(dist)
+	if abs(dist-3) > 1:
+		error = dist*.1
+		spin(0, -5-error, 0)
+	else:
+		stop()
+		bot_state = DROP_FRUIT
+		print("DRIVE_TO_BINS -> DROP_FRUIT")
+
+def drop_fruit():
+	global bot_state
+
 	val = basket_sensor.value()
 	print(val)
-	if val < 2800:
-		door_motor.spin_for(FORWARD, 180, DEGREES, velocity=20)
-		# door_motor.spin_for()
+	if val < 2800: # if there is still fruit in the basket
+		door_motor.spin_to_position(180, velocity=40)
+		# shake the fruit down the basket
 		drive_for(10, 0, 0, speed=100)
 		drive_for(-10, 0, 0, speed=100)
 	else:
+		door_motor.spin_to_position(0, velocity=40)
 		bot_state = DONE
 		stop()
-		print("SCAN_FOR_BINS -> DONE!!") 
+		print("DROP_FRUIT -> DONE!!")
+
+
+# returns the objects of the fruit, and displays the color on the screen
+def determineColor(color: str) -> Tuple[VisionObject, str]:
+	objects: Tuple[VisionObject] = camera.take_snapshot(COLORS[COLOR_STRINGS.index(color)], 1)
+	if objects:
+		brain.screen.print_at("Color: " + color + ".     ", x=50, y=100)
+		return (objects[0], color)
+
+	brain.screen.print_at("No fruit found.   ", x=50, y=100)
+	fake_object: VisionObject = VisionObject()
+	return (fake_object, "null")
+
+def foundObject(fruit_color: str) -> bool:
+	if not fruit_color in COLOR_STRINGS:
+		return False
+	objects: Tuple[VisionObject] = camera.take_snapshot(COLORS[COLOR_STRINGS.index(fruit_color)], 1)
+	if objects:
+		brain.screen.print_at("Color: " + fruit_color + ".     ", x=50, y=100)
+		return True
+	brain.screen.print_at("No fruit found.   ", x=50, y=100)
+	return False
 
 button.pressed(start)
 print("Calibrating...")
@@ -171,6 +245,10 @@ while True:
 		follow_wall()
 	elif bot_state == SCAN_FOR_BINS:
 		scan_for_bins()
+	elif bot_state == DRIVE_TO_BINS:
+		drive_to_bins()
+	elif bot_state == DROP_FRUIT:
+		drop_fruit()
 	elif bot_state == DONE:
 		print("DONE!")
 		sleep(500)
