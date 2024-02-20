@@ -34,6 +34,8 @@ range_finder = Sonar(brain.three_wire_port.e) # NOTE: has a range of 30 to 3000 
 def activate_control():
 	#while button.pressing():
 	#	wait(5)
+	arm_motor.set_position(0)
+	claw_motor.set_position(0)
 	while True:
 		global door_opening
 
@@ -44,6 +46,8 @@ def activate_control():
 		southwest_motor.spin(FORWARD, forward_speed - right_speed - spin_speed, RPM)
 		southeast_motor.spin(FORWARD, forward_speed + right_speed - spin_speed, RPM)
 		arm_motor.spin(FORWARD, move_arm(75), RPM)
+		if controller.buttonLeft.pressing():
+			print(arm_motor.position())
 		door_motor.spin_for(FORWARD, toggleDoor(360), DEGREES, 75, RPM, False)
 		if squeeze():
 			claw_motor.spin(FORWARD, 5, RPM)
