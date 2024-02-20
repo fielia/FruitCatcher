@@ -17,9 +17,9 @@ from routes import *
 brain = Brain()
 
 imu = Inertial(Ports.PORT20)
-button = Bumper(brain.three_wire_port.b)
+button = Bumper(brain.three_wire_port.a)
 range_finder = Sonar(brain.three_wire_port.e) # NOTE: has a range of 30 to 3000 MM
-fruit_sonic = Sonar(brain.three_wire_port.a)
+fruit_sonic = Sonar(brain.three_wire_port.c)
 camera = Vision(Ports.PORT14, 43, FruitColor.GRAPEFRUIT, FruitColor.LIME, FruitColor.LEMON, FruitColor.ORANGE_FRUIT)
 
 orchard = Orchard()
@@ -29,7 +29,11 @@ CLAW_CHOP_POSITION: float = 0 # position of the claw right after chopping a frui
 # start robot at the corner near the exit sign
 
 def testing():
-	drive(10, 0)
+	brain.screen.clear_screen()
+	go_to((0, 0))
+	scan_fruit((0, 0))
+	while True:
+		kill()
 
 def activate_auto():
 	"""
@@ -47,7 +51,7 @@ def activate_auto():
 	move_arm(0, stall=False)
 	Log.return_to_origin()
 
-def get_color() -> Signature:
+def _get_color() -> Signature:
 	"""
 	Finds a fruit and returns its color.
 
@@ -63,7 +67,7 @@ def get_color() -> Signature:
 	brain.screen.print_at("No fruit found.   ", x=50, y=100)
 	raise Exception("Camera did not detect a fruit.")
 
-def get_height() -> float:
+def _get_height() -> float:
 	"""
 	Returns the distance found by the ultrasonic sensor.
 
@@ -82,11 +86,11 @@ def scan_fruit(location: tuple[int, int]) -> None:
 	Params:
 		location (tuple[int, int]): the location, (x, y) of the tree in a grid system.
 	"""
-	fruit_color: Signature = get_color()
-	raw_height: float = get_height()
-	orchard.add_tree(fruit_color, convert_height(raw_height), location)
+	fruit_color: Signature = _get_color()
+	raw_height: float = _get_height()
+	orchard.add_tree(fruit_color, _convert_height(raw_height), location)
 
-def convert_height(old_height: float) -> float:
+def _convert_height(old_height: float) -> float:
 	"""
 	Converts the raw ultrasonic sensor output to tree heights (this value is the position the arm will be in to grab fruits).
 

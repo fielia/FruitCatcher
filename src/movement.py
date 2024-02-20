@@ -88,7 +88,14 @@ def rotate(rotation_angle: float, speed: float = 40, stall: bool = True) -> None
 		stall (bool): wait for the motion to finish before moving on (default is true).
 	"""
 	robot_diameter: float = 380 # in mm
-	degrees_r: float = rotation_angle / (robot_diameter * math.pi) / (wheel_diameter * math.pi) * 360
+	rotation_angle -= 10
+	degrees_r: float = (robot_diameter * math.pi) * (rotation_angle / 360) / (wheel_diameter * math.pi) * 360
+	'''revolutions (wheel)
+	revolutions * wheel circumference = distance per rev
+	total distance = robot circumference
+	total dist / dist per rev = total revs to travel ( * 360 = total degrees to travel)
+	'''
+	print(degrees_r)
 	
 	northwest_motor.spin_for(FORWARD, degrees_r, DEGREES, speed, RPM, wait=False)
 	northeast_motor.spin_for(FORWARD, -degrees_r, DEGREES, speed, RPM, wait=False)

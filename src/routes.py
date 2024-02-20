@@ -1,6 +1,6 @@
 from movement import *
 
-at_exit: bool = True # start corner of the robot (exit or opposite of exit)
+at_exit: bool = False # start corner of the robot (exit or opposite of exit)
 
 def go_to(location: tuple[int, int]):
 	_go_to_row(location[0])
