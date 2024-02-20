@@ -135,7 +135,7 @@ def squeeze() -> None:
 	claw_motor.spin(FORWARD, 5, RPM)
 
 # outwards: 1 = spin out, -1 = spin in
-def toggleDoor(angle: int = 360, outwards: int = 0, speed: float = 75) -> None:
+def toggle_door(angle: int = 360, outwards: int = 0, speed: float = 75) -> None:
 	"""
 	Moves the door, and automatically checks if complete.
 
@@ -151,7 +151,7 @@ def toggleDoor(angle: int = 360, outwards: int = 0, speed: float = 75) -> None:
 	wait(1000)
 	if door_motor.is_spinning():
 		door_motor.spin_to_position(0)
-		toggleDoor(angle, outwards, speed)
+		toggle_door(angle, outwards, speed)
 
 controller: Controller = Controller()
 y_button: Controller.Button = controller.buttonY

@@ -337,7 +337,7 @@ def __define__src_movement():
 		claw_motor.spin(FORWARD, 5, RPM)
 	
 	# outwards: 1 = spin out, -1 = spin in
-	def toggleDoor(angle: int = 360, outwards: int = 0, speed: float = 75) -> None:
+	def toggle_door(angle: int = 360, outwards: int = 0, speed: float = 75) -> None:
 		"""
 		Moves the door, and automatically checks if complete.
 	
@@ -353,7 +353,7 @@ def __define__src_movement():
 		wait(1000)
 		if door_motor.is_spinning():
 			door_motor.spin_to_position(0)
-			toggleDoor(angle, outwards, speed)
+			toggle_door(angle, outwards, speed)
 	
 	controller: Controller = Controller()
 	y_button: Controller.Button = controller.buttonY
@@ -390,7 +390,7 @@ def __define__src_movement():
 	l["move_arm"] = move_arm
 	l["move_claw"] = move_claw
 	l["squeeze"] = squeeze
-	l["toggleDoor"] = toggleDoor
+	l["toggle_door"] = toggle_door
 	l["controller"] = controller
 	l["y_button"] = y_button
 	l["right_button"] = right_button
@@ -403,16 +403,16 @@ def __define__src_routes():
 	if "src_routes" in __ModuleCache__: return __ModuleCache__["src_routes"]
 	__name__ = "__src_routes__"
 	__root__src_movement = __define__src_movement()
-	for k in __root__src_movement: locals()[k] = __root__src_movement[k]
+	drive = __root__src_movement.drive
 	
-	at_exit: bool = False # start corner of the robot (exit or opposite of exit)
+	at_door: bool = False # start corner of the robot (exit or opposite of exit)
 	
 	def go_to(location: tuple[int, int]):
 		_go_to_row(location[0])
 		_go_to_col(location[1])
 	
 	def _go_to_row(row: int):
-		if at_exit:
+		if at_door:
 			if row == 0:
 				drive(100, 0) # in mm
 			elif row == 1:
@@ -428,23 +428,23 @@ def __define__src_routes():
 				drive(2490, 0) # in mm
 	
 	def _go_to_col(col: int):
-		if at_exit:
-			if col == 0:
-				drive(0, 420) # in mm
-			elif col == 1:
-				drive(0, 955) # in mm
-			elif col == 2:
-				drive(0, 1510) # in mm
-		else:
+		if at_door:
 			if col == 0:
 				drive(0, 430) # in mm
 			elif col == 1:
 				drive(0, 985) # in mm
 			elif col == 2:
 				drive(0, 1530) # in mm
+		else:
+			if col == 0:
+				drive(0, 420) # in mm
+			elif col == 1:
+				drive(0, 955) # in mm
+			elif col == 2:
+				drive(0, 1510) # in mm
 
 	l = locals()
-	l["at_exit"] = at_exit
+	l["at_door"] = at_door
 	l["go_to"] = go_to
 	l["_go_to_row"] = _go_to_row
 	l["_go_to_col"] = _go_to_col
@@ -468,9 +468,15 @@ def __define__src_main():
 	FruitColor = __root__src_tree.FruitColor
 	Orchard = __root__src_tree.Orchard
 	__root__src_movement = __define__src_movement()
-	for k in __root__src_movement: locals()[k] = __root__src_movement[k]
+	Log = __root__src_movement.Log
+	drive = __root__src_movement.drive
+	rotate = __root__src_movement.rotate
+	move_arm = __root__src_movement.move_arm
+	move_claw = __root__src_movement.move_claw
+	toggle_door = __root__src_movement.toggle_door
+	kill = __root__src_movement.kill
 	__root__src_routes = __define__src_routes()
-	for k in __root__src_routes: locals()[k] = __root__src_routes[k]
+	go_to = __root__src_routes.go_to
 	
 	# variable declaration
 	brain = Brain()
@@ -593,7 +599,7 @@ def __define__src_main():
 
 try: __define__src_main()
 except Exception as e:
-	s = [(20,"src\tree.py"),(205,"src\movement.py"),(406,"src\routes.py"),(458,"src\main.py"),(593,"<module>")]
+	s = [(20,"src\tree.py"),(205,"src\movement.py"),(406,"src\routes.py"),(458,"src\main.py"),(599,"<module>")]
 	def f(x: str):
 		if not x.startswith('  File'): return x
 		l = int(match('.+line (\\d+),.+', x).group(1))

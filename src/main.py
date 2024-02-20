@@ -10,8 +10,8 @@
 # Library imports
 from vex import *
 from tree import FruitColor, Orchard
-from movement import *
-from routes import *
+from movement import Log, drive, rotate, move_arm, move_claw, toggle_door, kill
+from routes import go_to
 
 # variable declaration
 brain = Brain()

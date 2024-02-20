@@ -1,4 +1,4 @@
-from movement import *
+from movement import drive
 
 at_door: bool = False # start corner of the robot (exit or opposite of exit)
 
