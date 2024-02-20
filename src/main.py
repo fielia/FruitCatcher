@@ -22,7 +22,7 @@ southeast_motor: Motor = Motor(Ports.PORT10, 0.2, True) # set boolean so motor s
 negative_motors: MotorGroup = MotorGroup(northwest_motor, southeast_motor) # the motors on the negative diagonal
 positive_motors: MotorGroup = MotorGroup(northeast_motor, southwest_motor) # the motors on the positive diagonal
 
-arm_motor = Motor(Ports.PORT18, 0.2, True)
+arm_motor = Motor(Ports.PORT11, 0.2, False)
 claw_motor = Motor(Ports.PORT12, 0.2, True)
 door_motor = Motor(Ports.PORT1, 0.2, True)
 imu = Inertial(Ports.PORT20)
