@@ -10,7 +10,8 @@
 # Library imports
 from vex import *
 # from control import move_drive, rotate_drive, rotate_arm, move_claw
-import random
+import time
+import math
 
 # variable declaration
 brain = Brain()
@@ -28,8 +29,10 @@ claw_motor = Motor(Ports.PORT12, 0.2, True)
 door_motor = Motor(Ports.PORT1, 0.2, True)
 imu = Inertial(Ports.PORT20)
 
+door_motor.set_timeout(2000)
+
 basket_sensor = Light(brain.three_wire_port.b)
-button = Bumper(brain.three_wire_port.a)
+other_basket_sensor = Light(brain.three_wire_port.a)
 front_range_finder = Sonar(brain.three_wire_port.e) # NOTE: has a range of 30 to 3000 MM
 left_range_finder = Sonar(brain.three_wire_port.g)
 fruit_range_finder = Sonar(brain.three_wire_port.c)
@@ -53,7 +56,7 @@ SCAN_FOR_BINS = 3
 DRIVE_TO_BINS = 4
 DROP_FRUIT = 5
 DONE = -1
-bot_state = SCAN_FOR_BINS
+bot_state = IDLE
 
 
 controller: Controller = Controller()
@@ -98,9 +101,15 @@ def toggleDoor(angle: int = 360, outwards: int = 0, speed: float = 75, stall: bo
 		door_motor.spin_to_position(0)
 		toggleDoor(angle, outwards, speed)
 
+start_time = 0
+finish_time = 0
+
 def start():
 	global bot_state
+	global start_time
+
 	bot_state = DRIVE_TO_WALL
+	start_time = time.time()
 	print("IDLE -> DRIVE_TO_WALL")
 
 def stop():
@@ -113,14 +122,14 @@ def drive_to_wall():
 	global bot_state
 
 	dist = left_range_finder.distance(DistanceUnits.CM)
-	#print(dist)
+	# print(dist)
 	if abs(dist-15) > 2:
 		orientation = imu.rotation()
 		spin_error = orientation*-0.2
 		error = dist*.75
 		if error > 50:
 			error = 50
-		spin(50+error, 0, spin_error)
+		spin(20+error, 0, spin_error)
 	else:
 		stop()
 		bot_state = FOLLOW_WALL
@@ -133,7 +142,7 @@ def follow_wall():
 
 	dist = front_range_finder.distance(DistanceUnits.CM)
 
-	if dist > 5: # if we are not at the bins yet
+	if abs(dist-10) > 1: # if we are not at the bins yet
 		orientation = imu.rotation()
 		#print(orientation)
 		if abs(orientation) < 10: # if we are pointing relatively forwards...
@@ -164,13 +173,13 @@ def scan_for_bins():
 	error = 10 - dist
 	effort = error * 2
 
-	if abs(error) < 2: # if we are position correctly away from the bins
+	if abs(error) < 1: # if we are position correctly away from the bins
 		# scan for specific bin color
-		if foundObject("LIME"):
-			blob, color = determineColor("LIME")
+		if foundObject("LEMON"):
+			blob, color = determineColor("LEMON")
 			side_effort = (blob.centerX-150) * 0.1
 			spin(side_effort, effort, 0)
-			if side_effort < 20:
+			if abs(side_effort) < 5:
 				# if bin is found, move forward and transition to dropping fruit
 				stop()
 				print("SCAN_FOR_BINS -> DRIVE_TO_BINS")
@@ -184,8 +193,8 @@ def drive_to_bins():
 	global bot_state
 
 	dist = front_range_finder.distance(DistanceUnits.CM)
-	#print(dist)
-	if abs(dist-3) > 1:
+	# print(dist)
+	if abs(dist-3) > 0.5:
 		error = dist*.1
 		spin(0, -5-error, 0)
 	else:
@@ -193,20 +202,45 @@ def drive_to_bins():
 		bot_state = DROP_FRUIT
 		print("DRIVE_TO_BINS -> DROP_FRUIT")
 
+def fruit_in_basket():
+	# check both sides of the basket
+	val = basket_sensor.value()
+	other_val = other_basket_sensor.value()
+	return val < 2800 or other_val < 2760
+
 def drop_fruit():
 	global bot_state
+	global finish_time
 
-	val = basket_sensor.value()
-	print(val)
-	if val < 2800: # if there is still fruit in the basket
-		door_motor.spin_to_position(180, velocity=40)
+	# print(val)
+	if fruit_in_basket(): # if there is still fruit in the basket
 		# shake the fruit down the basket
 		drive_for(10, 0, 0, speed=100)
 		drive_for(-10, 0, 0, speed=100)
+		door_motor.spin_to_position(180, velocity=40)
+		sleep(500)
+		for i in range(2):
+			drive_for(10, 0, 0, speed=100)
+			drive_for(-10, 0, 0, speed=100)
+		sleep(500)
+		door_motor.spin_to_position(0, velocity=40)
+		if fruit_in_basket():
+			bot_state = SCAN_FOR_BINS
+			spin(0, -10, 0)
+			door_motor.spin_to_position(180, velocity=40)
+			spin(0, 10, 0)
+		else:
+			bot_state = DONE
+			finish_time = time.time()
+			stop()
+			print(time.time())
+			print("DROP_FRUIT -> DONE!!")
 	else:
 		door_motor.spin_to_position(0, velocity=40)
 		bot_state = DONE
+		finish_time = time.time()
 		stop()
+		print(time.time())
 		print("DROP_FRUIT -> DONE!!")
 
 
@@ -231,13 +265,15 @@ def foundObject(fruit_color: str) -> bool:
 	brain.screen.print_at("No fruit found.   ", x=50, y=100)
 	return False
 
-button.pressed(start)
+#button.pressed(start)
 print("Calibrating...")
 imu.calibrate()
+sleep(2000)
 print("Robot Armed")
+start()
 
 while True:
-	#if bot_state == IDLE:
+	# if bot_state == IDLE:
 		#print("IDLE")
 	if bot_state == DRIVE_TO_WALL:
 		drive_to_wall()
@@ -250,5 +286,5 @@ while True:
 	elif bot_state == DROP_FRUIT:
 		drop_fruit()
 	elif bot_state == DONE:
-		print("DONE!")
+		brain.screen.print_at("Time: "+str(finish_time-start_time), x=50, y=200)
 		sleep(500)
