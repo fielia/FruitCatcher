@@ -10,7 +10,7 @@
 # Library imports
 from vex import *
 from tree import FruitColor, Orchard
-from movement import Log, drive, rotate, move_arm, move_claw, toggle_door, kill
+from movement import Log, drive, rotate, move_arm, move_claw, toggle_squeeze, toggle_door, kill, reset_motors
 from routes import go_to
 
 # variable declaration
@@ -18,22 +18,33 @@ brain = Brain()
 
 imu = Inertial(Ports.PORT20)
 button = Bumper(brain.three_wire_port.a)
-range_finder = Sonar(brain.three_wire_port.e) # NOTE: has a range of 30 to 3000 MM
-fruit_sonic = Sonar(brain.three_wire_port.c)
+fruit_sonic = Sonar(brain.three_wire_port.c) # NOTE: has a range of 30 to 3000 MM
 camera = Vision(Ports.PORT14, 43, FruitColor.GRAPEFRUIT, FruitColor.LIME, FruitColor.LEMON, FruitColor.ORANGE_FRUIT)
 
 orchard = Orchard()
 
-CLAW_CHOP_POSITION: float = 0 # position of the claw right after chopping a fruit
-
-# start robot at the corner near the exit sign
+CLAW_SQUEEZE: float = 90
+CLAW_CHOP: float = 115 # position of the claw right after chopping a fruit
+ARM_LOW: float = 125
+ARM_MID: float = 1040
+ARM_HIGH: float = 1925
 
 def testing():
 	brain.screen.clear_screen()
-	go_to((0, 0))
+	drive(0, 270)
+	wait(100)
+	drive(-600, 0)
+	wait(500)
+	drive(-50, 0)
+	wait(500)
 	scan_fruit((0, 0))
-	while True:
-		kill()
+	drive(15, -25)
+	brain.screen.print_at(orchard.get_tree_height((0, 0)), x=50, y=50)
+	move_arm(orchard.get_tree_height((0, 0)))
+	move_claw(CLAW_CHOP)
+	move_arm(10, stall=False)
+	move_claw(5)
+	brain.screen.print_at("Done.", x=50, y=100)
 
 def activate_auto():
 	"""
@@ -46,7 +57,7 @@ def activate_auto():
 	go_to(current_tree)
 	scan_fruit(current_tree)
 	move_arm(orchard.get_tree_height(current_tree))
-	move_claw(CLAW_CHOP_POSITION)
+	move_claw(CLAW_CHOP)
 	move_claw(0, stall=False)
 	move_arm(0, stall=False)
 	Log.return_to_origin()
@@ -65,7 +76,8 @@ def _get_color() -> Signature:
 			return color
 
 	brain.screen.print_at("No fruit found.   ", x=50, y=100)
-	raise Exception("Camera did not detect a fruit.")
+	return Signature(0, 0, 0, 0, 0, 0, 0, 0, 0)
+	# raise Exception("Camera did not detect a fruit.")
 
 def _get_height() -> float:
 	"""
@@ -74,10 +86,8 @@ def _get_height() -> float:
 	Returns:
 		float: the value returned by the sensors.
 	"""
-	height = fruit_sonic.distance(DistanceUnits.CM)
-	if height > 20:
-		raise Exception("Ultrasonic did not detect a fruit.")
-	return height
+	return fruit_sonic.distance(DistanceUnits.MM)
+	
 
 def scan_fruit(location: tuple[int, int]) -> None:
 	"""
@@ -88,27 +98,36 @@ def scan_fruit(location: tuple[int, int]) -> None:
 	"""
 	fruit_color: Signature = _get_color()
 	raw_height: float = _get_height()
+	brain.screen.print_at(_convert_height(raw_height), x=100, y=50)
 	orchard.add_tree(fruit_color, _convert_height(raw_height), location)
 
 def _convert_height(old_height: float) -> float:
 	"""
-	Converts the raw ultrasonic sensor output to tree heights (this value is the position the arm will be in to grab fruits).
+	Converts the MM ultrasonic sensor output to tree heights (this value is the position the arm will be in to grab fruits).
 
 	Params:
-		old_height (float): the raw value from the ultrasonic sensor.
+		old_height (float): the MM value from the ultrasonic sensor.
 
 	Returns:
 		float: the tree height.
 	"""
-	new_height: float = 0
 
-	return new_height
+	if old_height < 70 or old_height > 3000:
+		return ARM_LOW
+	elif old_height < 150:
+		return ARM_MID
+	elif old_height < 340:
+		return ARM_HIGH
+
+	return 0
+
 
 # initialize testing (will be triggered with button press and pre-run checks will be run here)
 imu.calibrate()
 brain.screen.print_at("IMU Calibrating...", x=50, y=50)
 while imu.is_calibrating():
 	wait(100)
+reset_motors()
 brain.screen.clear_screen()
 brain.screen.print_at("Button Ready", x=50, y=50)
 

@@ -128,11 +128,14 @@ def move_claw(end_position: float, speed: int = 50, stall: bool = True) -> None:
 	kill()
 	claw_motor.spin_to_position(end_position, DEGREES, speed, RPM, wait=stall)
 
-def squeeze() -> None:
+def toggle_squeeze() -> None:
 	"""
 	Squeezes the claw at a small speed, to better grip a fruit when pulling it down.
 	"""
-	claw_motor.spin(FORWARD, 5, RPM)
+	if claw_motor.is_spinning():
+		claw_motor.stop()
+	else:
+		claw_motor.spin(FORWARD, 5, RPM)
 
 # outwards: 1 = spin out, -1 = spin in
 def toggle_door(angle: int = 360, outwards: int = 0, speed: float = 75) -> None:

@@ -123,6 +123,7 @@ def __define__src_tree():
 			if not self.new_tree_discovered(location):
 				return False
 			self._fill_colors(location[0], color)
+			self._at_location(location).set_height(height)
 			self._fill_third_tree(location[0])
 			return True
 	
@@ -132,7 +133,7 @@ def __define__src_tree():
 			raise Exception("Error: Tree at location " + str(location) + " not found. Query Variable: Color.")
 	
 		def get_tree_height(self, location: tuple[int, int]) -> float:
-			if self._at_location(location):
+			if self._at_location(location).get_height() != 0:
 				return self._at_location(location).get_height()
 			raise Exception("Error: Tree at location " + str(location) + " not found. Query Variable: Height.")
 	
@@ -330,11 +331,14 @@ def __define__src_movement():
 		kill()
 		claw_motor.spin_to_position(end_position, DEGREES, speed, RPM, wait=stall)
 	
-	def squeeze() -> None:
+	def toggle_squeeze() -> None:
 		"""
 		Squeezes the claw at a small speed, to better grip a fruit when pulling it down.
 		"""
-		claw_motor.spin(FORWARD, 5, RPM)
+		if claw_motor.is_spinning():
+			claw_motor.stop()
+		else:
+			claw_motor.spin(FORWARD, 5, RPM)
 	
 	# outwards: 1 = spin out, -1 = spin in
 	def toggle_door(angle: int = 360, outwards: int = 0, speed: float = 75) -> None:
@@ -389,7 +393,7 @@ def __define__src_movement():
 	l["rotate"] = rotate
 	l["move_arm"] = move_arm
 	l["move_claw"] = move_claw
-	l["squeeze"] = squeeze
+	l["toggle_squeeze"] = toggle_squeeze
 	l["toggle_door"] = toggle_door
 	l["controller"] = controller
 	l["y_button"] = y_button
@@ -405,7 +409,7 @@ def __define__src_routes():
 	__root__src_movement = __define__src_movement()
 	drive = __root__src_movement.drive
 	
-	at_door: bool = False # start corner of the robot (exit or opposite of exit)
+	at_door: bool = True # start corner of the robot (exit or opposite of exit)
 	
 	def go_to(location: tuple[int, int]):
 		_go_to_row(location[0])
@@ -414,7 +418,7 @@ def __define__src_routes():
 	def _go_to_row(row: int):
 		if at_door:
 			if row == 0:
-				drive(100, 0) # in mm
+				drive(235, 0) # in mm
 			elif row == 1:
 				drive(1000, 0) # in mm
 			elif row == 2:
@@ -430,7 +434,7 @@ def __define__src_routes():
 	def _go_to_col(col: int):
 		if at_door:
 			if col == 0:
-				drive(0, 430) # in mm
+				drive(0, 440) # in mm
 			elif col == 1:
 				drive(0, 985) # in mm
 			elif col == 2:
@@ -473,8 +477,10 @@ def __define__src_main():
 	rotate = __root__src_movement.rotate
 	move_arm = __root__src_movement.move_arm
 	move_claw = __root__src_movement.move_claw
+	toggle_squeeze = __root__src_movement.toggle_squeeze
 	toggle_door = __root__src_movement.toggle_door
 	kill = __root__src_movement.kill
+	reset_motors = __root__src_movement.reset_motors
 	__root__src_routes = __define__src_routes()
 	go_to = __root__src_routes.go_to
 	
@@ -483,22 +489,33 @@ def __define__src_main():
 	
 	imu = Inertial(Ports.PORT20)
 	button = Bumper(brain.three_wire_port.a)
-	range_finder = Sonar(brain.three_wire_port.e) # NOTE: has a range of 30 to 3000 MM
-	fruit_sonic = Sonar(brain.three_wire_port.c)
+	fruit_sonic = Sonar(brain.three_wire_port.c) # NOTE: has a range of 30 to 3000 MM
 	camera = Vision(Ports.PORT14, 43, FruitColor.GRAPEFRUIT, FruitColor.LIME, FruitColor.LEMON, FruitColor.ORANGE_FRUIT)
 	
 	orchard = Orchard()
 	
-	CLAW_CHOP_POSITION: float = 0 # position of the claw right after chopping a fruit
-	
-	# start robot at the corner near the exit sign
+	CLAW_SQUEEZE: float = 90
+	CLAW_CHOP: float = 115 # position of the claw right after chopping a fruit
+	ARM_LOW: float = 125
+	ARM_MID: float = 1040
+	ARM_HIGH: float = 1925
 	
 	def testing():
 		brain.screen.clear_screen()
-		go_to((0, 0))
+		drive(0, 270)
+		wait(100)
+		drive(-600, 0)
+		wait(500)
+		drive(-50, 0)
+		wait(500)
 		scan_fruit((0, 0))
-		while True:
-			kill()
+		drive(15, -25)
+		brain.screen.print_at(orchard.get_tree_height((0, 0)), x=50, y=50)
+		move_arm(orchard.get_tree_height((0, 0)))
+		move_claw(CLAW_CHOP)
+		move_arm(10, stall=False)
+		move_claw(5)
+		brain.screen.print_at("Done.", x=50, y=100)
 	
 	def activate_auto():
 		"""
@@ -511,7 +528,7 @@ def __define__src_main():
 		go_to(current_tree)
 		scan_fruit(current_tree)
 		move_arm(orchard.get_tree_height(current_tree))
-		move_claw(CLAW_CHOP_POSITION)
+		move_claw(CLAW_CHOP)
 		move_claw(0, stall=False)
 		move_arm(0, stall=False)
 		Log.return_to_origin()
@@ -530,7 +547,8 @@ def __define__src_main():
 				return color
 	
 		brain.screen.print_at("No fruit found.   ", x=50, y=100)
-		raise Exception("Camera did not detect a fruit.")
+		return Signature(0, 0, 0, 0, 0, 0, 0, 0, 0)
+		# raise Exception("Camera did not detect a fruit.")
 	
 	def _get_height() -> float:
 		"""
@@ -539,10 +557,8 @@ def __define__src_main():
 		Returns:
 			float: the value returned by the sensors.
 		"""
-		height = fruit_sonic.distance(DistanceUnits.CM)
-		if height > 20:
-			raise Exception("Ultrasonic did not detect a fruit.")
-		return height
+		return fruit_sonic.distance(DistanceUnits.MM)
+		
 	
 	def scan_fruit(location: tuple[int, int]) -> None:
 		"""
@@ -553,27 +569,36 @@ def __define__src_main():
 		"""
 		fruit_color: Signature = _get_color()
 		raw_height: float = _get_height()
+		brain.screen.print_at(_convert_height(raw_height), x=100, y=50)
 		orchard.add_tree(fruit_color, _convert_height(raw_height), location)
 	
 	def _convert_height(old_height: float) -> float:
 		"""
-		Converts the raw ultrasonic sensor output to tree heights (this value is the position the arm will be in to grab fruits).
+		Converts the MM ultrasonic sensor output to tree heights (this value is the position the arm will be in to grab fruits).
 	
 		Params:
-			old_height (float): the raw value from the ultrasonic sensor.
+			old_height (float): the MM value from the ultrasonic sensor.
 	
 		Returns:
 			float: the tree height.
 		"""
-		new_height: float = 0
 	
-		return new_height
+		if old_height < 70 or old_height > 3000:
+			return ARM_LOW
+		elif old_height < 150:
+			return ARM_MID
+		elif old_height < 340:
+			return ARM_HIGH
+	
+		return 0
+	
 	
 	# initialize testing (will be triggered with button press and pre-run checks will be run here)
 	imu.calibrate()
 	brain.screen.print_at("IMU Calibrating...", x=50, y=50)
 	while imu.is_calibrating():
 		wait(100)
+	reset_motors()
 	brain.screen.clear_screen()
 	brain.screen.print_at("Button Ready", x=50, y=50)
 	
@@ -583,11 +608,14 @@ def __define__src_main():
 	l["brain"] = brain
 	l["imu"] = imu
 	l["button"] = button
-	l["range_finder"] = range_finder
 	l["fruit_sonic"] = fruit_sonic
 	l["camera"] = camera
 	l["orchard"] = orchard
-	l["CLAW_CHOP_POSITION"] = CLAW_CHOP_POSITION
+	l["CLAW_SQUEEZE"] = CLAW_SQUEEZE
+	l["CLAW_CHOP"] = CLAW_CHOP
+	l["ARM_LOW"] = ARM_LOW
+	l["ARM_MID"] = ARM_MID
+	l["ARM_HIGH"] = ARM_HIGH
 	l["testing"] = testing
 	l["activate_auto"] = activate_auto
 	l["_get_color"] = _get_color
@@ -599,7 +627,7 @@ def __define__src_main():
 
 try: __define__src_main()
 except Exception as e:
-	s = [(20,"src\tree.py"),(205,"src\movement.py"),(406,"src\routes.py"),(458,"src\main.py"),(599,"<module>")]
+	s = [(20,"src\tree.py"),(206,"src\movement.py"),(410,"src\routes.py"),(462,"src\main.py"),(627,"<module>")]
 	def f(x: str):
 		if not x.startswith('  File'): return x
 		l = int(match('.+line (\\d+),.+', x).group(1))

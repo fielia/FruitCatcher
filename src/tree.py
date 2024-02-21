@@ -106,6 +106,7 @@ class Orchard:
 		if not self.new_tree_discovered(location):
 			return False
 		self._fill_colors(location[0], color)
+		self._at_location(location).set_height(height)
 		self._fill_third_tree(location[0])
 		return True
 
@@ -115,7 +116,7 @@ class Orchard:
 		raise Exception("Error: Tree at location " + str(location) + " not found. Query Variable: Color.")
 
 	def get_tree_height(self, location: tuple[int, int]) -> float:
-		if self._at_location(location):
+		if self._at_location(location).get_height() != 0:
 			return self._at_location(location).get_height()
 		raise Exception("Error: Tree at location " + str(location) + " not found. Query Variable: Height.")
 
