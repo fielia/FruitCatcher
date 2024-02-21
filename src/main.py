@@ -9,7 +9,7 @@
 
 # Library imports
 from vex import *
-from states import brain, imu, reset_motors, controller
+from states import pre_checks
 
 # state definitions
 IDLING = 0
@@ -28,6 +28,7 @@ def activate_auto():
 	"""
 	while True:
 		if curr_state == IDLING:
+			pre_checks()
 			print("IDLING")
 		elif curr_state == TRAVELING:
 			print("TRAVELING")
@@ -44,12 +45,4 @@ def activate_auto():
 
 
 # initialize testing (will be triggered with button press and pre-run checks will be run here)
-imu.calibrate()
-brain.screen.print_at("IMU Calibrating...", x=50, y=50)
-while imu.is_calibrating():
-	wait(100)
-reset_motors()
-brain.screen.clear_screen()
-brain.screen.print_at("Button Ready", x=50, y=50)
-
-controller.buttonA.pressed(activate_auto)
+activate_auto()

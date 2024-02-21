@@ -17,7 +17,17 @@ ARM_LOW: float = 125
 ARM_MID: float = 1040
 ARM_HIGH: float = 1925
 
-# state functions:
+### state functions
+
+# idling function
+def pre_checks():
+	imu.calibrate()
+	brain.screen.print_at("IMU Calibrating...", x=50, y=50)
+	while imu.is_calibrating():
+		wait(100)
+	reset_motors()
+	brain.screen.clear_screen()
+	brain.screen.print_at("Button Ready", x=50, y=50)
 
 def activate_auto():
 	"""
@@ -31,7 +41,7 @@ def activate_auto():
 	grab_fruit(orchard.get_tree_height(current_tree))
 	Log.return_to_origin()
 
-# end of state functions
+### end of state functions
 
 def _get_color() -> Signature:
 	"""
