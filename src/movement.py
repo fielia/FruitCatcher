@@ -78,6 +78,13 @@ def drive(distance_y: float, distance_x: float, speed: float = 40, stall: bool =
 	
 	Log.add_distance(y_distance=distance_y, x_distance=distance_x)
 
+def drive_speed(speed_y: float = 40, speed_x: float = 40):
+	northwest_motor.spin(FORWARD, speed_y + speed_x, RPM)
+	northeast_motor.spin(FORWARD, speed_y - speed_x, RPM)
+	southwest_motor.spin(FORWARD, speed_y - speed_x, RPM)
+	southeast_motor.spin(FORWARD, speed_y + speed_x, RPM)
+
+
 def rotate(rotation_angle: float, speed: float = 40, stall: bool = True) -> None:
 	"""
 	Rotates the robot.
@@ -90,11 +97,6 @@ def rotate(rotation_angle: float, speed: float = 40, stall: bool = True) -> None
 	robot_diameter: float = 380 # in mm
 	rotation_angle -= 10
 	degrees_r: float = (robot_diameter * math.pi) * (rotation_angle / 360) / (wheel_diameter * math.pi) * 360
-	'''revolutions (wheel)
-	revolutions * wheel circumference = distance per rev
-	total distance = robot circumference
-	total dist / dist per rev = total revs to travel ( * 360 = total degrees to travel)
-	'''
 	print(degrees_r)
 	
 	northwest_motor.spin_for(FORWARD, degrees_r, DEGREES, speed, RPM, wait=False)
@@ -132,13 +134,14 @@ def toggle_squeeze() -> None:
 	"""
 	Squeezes the claw at a small speed, to better grip a fruit when pulling it down.
 	"""
+	kill()
 	if claw_motor.is_spinning():
 		claw_motor.stop()
 	else:
 		claw_motor.spin(FORWARD, 5, RPM)
 
 # outwards: 1 = spin out, -1 = spin in
-def toggle_door(angle: int = 360, outwards: int = 0, speed: float = 75) -> None:
+def toggle_door(angle: int = 360, outwards: int = 1, speed: float = 75) -> None:
 	"""
 	Moves the door, and automatically checks if complete.
 

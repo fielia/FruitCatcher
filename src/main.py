@@ -10,14 +10,13 @@
 # Library imports
 from vex import *
 from tree import FruitColor, Orchard
-from movement import Log, drive, rotate, move_arm, move_claw, toggle_squeeze, toggle_door, kill, reset_motors
+from movement import Log, drive, drive_speed, rotate, move_arm, move_claw, toggle_squeeze, toggle_door, kill, reset_motors, controller
 from routes import go_to
 
 # variable declaration
 brain = Brain()
 
 imu = Inertial(Ports.PORT20)
-button = Bumper(brain.three_wire_port.a)
 fruit_sonic = Sonar(brain.three_wire_port.c) # NOTE: has a range of 30 to 3000 MM
 camera = Vision(Ports.PORT14, 43, FruitColor.GRAPEFRUIT, FruitColor.LIME, FruitColor.LEMON, FruitColor.ORANGE_FRUIT)
 
@@ -50,16 +49,12 @@ def activate_auto():
 	"""
 	What the robot executes.
 	"""
-	global orchard
-	while button.pressing():
+	while controller.buttonA.pressing():
 		wait(5)
 	current_tree: tuple[int, int] = (0, 0)
 	go_to(current_tree)
 	scan_fruit(current_tree)
-	move_arm(orchard.get_tree_height(current_tree))
-	move_claw(CLAW_CHOP)
-	move_claw(0, stall=False)
-	move_arm(0, stall=False)
+	grab_fruit(orchard.get_tree_height(current_tree))
 	Log.return_to_origin()
 
 def _get_color() -> Signature:
@@ -121,6 +116,26 @@ def _convert_height(old_height: float) -> float:
 
 	return 0
 
+def center_on_fruit(fruit_color):
+	cx: float = 10 # default value to enter the while
+	cy: float = 10 # default value to enter the while
+	# cx: horizontal, cy: vertical
+	tolerance: float = 5
+	while cx < tolerance and cy < tolerance:
+		objects = camera.take_snapshot(fruit_color, 1)
+		fruit = objects[0]
+		cx = fruit.centerX - 50 # subtract the center pixel value to shift to center equal 0
+		cy = fruit.centerY - 50 # subtract the center pixel value to shift to center equal 0
+		effort_x = cx * 0.5
+		effort_y = cy * 0.5
+		drive_speed(effort_y, effort_x)
+
+def grab_fruit(fruit_height: float):
+	move_arm(fruit_height)
+	move_claw(CLAW_CHOP)
+	move_claw(10, stall=False)
+	move_arm(10, stall=True)
+
 
 # initialize testing (will be triggered with button press and pre-run checks will be run here)
 imu.calibrate()
@@ -131,4 +146,4 @@ reset_motors()
 brain.screen.clear_screen()
 brain.screen.print_at("Button Ready", x=50, y=50)
 
-button.pressed(testing)
+controller.buttonA.pressed(activate_auto)

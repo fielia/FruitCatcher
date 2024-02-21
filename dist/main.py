@@ -281,6 +281,13 @@ def __define__src_movement():
 		
 		Log.add_distance(y_distance=distance_y, x_distance=distance_x)
 	
+	def drive_speed(speed_y: float = 40, speed_x: float = 40):
+		northwest_motor.spin(FORWARD, speed_y + speed_x, RPM)
+		northeast_motor.spin(FORWARD, speed_y - speed_x, RPM)
+		southwest_motor.spin(FORWARD, speed_y - speed_x, RPM)
+		southeast_motor.spin(FORWARD, speed_y + speed_x, RPM)
+	
+	
 	def rotate(rotation_angle: float, speed: float = 40, stall: bool = True) -> None:
 		"""
 		Rotates the robot.
@@ -390,6 +397,7 @@ def __define__src_movement():
 	l["door_motor"] = door_motor
 	l["wheel_diameter"] = wheel_diameter
 	l["drive"] = drive
+	l["drive_speed"] = drive_speed
 	l["rotate"] = rotate
 	l["move_arm"] = move_arm
 	l["move_claw"] = move_claw
@@ -474,6 +482,7 @@ def __define__src_main():
 	__root__src_movement = __define__src_movement()
 	Log = __root__src_movement.Log
 	drive = __root__src_movement.drive
+	drive_speed = __root__src_movement.drive_speed
 	rotate = __root__src_movement.rotate
 	move_arm = __root__src_movement.move_arm
 	move_claw = __root__src_movement.move_claw
@@ -521,16 +530,12 @@ def __define__src_main():
 		"""
 		What the robot executes.
 		"""
-		nonlocal orchard
 		while button.pressing():
 			wait(5)
 		current_tree: tuple[int, int] = (0, 0)
 		go_to(current_tree)
 		scan_fruit(current_tree)
-		move_arm(orchard.get_tree_height(current_tree))
-		move_claw(CLAW_CHOP)
-		move_claw(0, stall=False)
-		move_arm(0, stall=False)
+		grab_fruit(orchard.get_tree_height(current_tree))
 		Log.return_to_origin()
 	
 	def _get_color() -> Signature:
@@ -592,6 +597,26 @@ def __define__src_main():
 	
 		return 0
 	
+	def center_on_fruit(fruit_color):
+		cx: float = 10 # default value to enter the while
+		cy: float = 10 # default value to enter the while
+		# cx: horizontal, cy: vertical
+		tolerance: float = 5
+		while cx < tolerance and cy < tolerance:
+			objects = camera.take_snapshot(fruit_color, 1)
+			fruit = objects[0]
+			cx = fruit.centerX - 50 # subtract the center pixel value to shift to center equal 0
+			cy = fruit.centerY - 50 # subtract the center pixel value to shift to center equal 0
+			effort_x = cx * 0.5
+			effort_y = cy * 0.5
+			drive_speed(effort_y, effort_x)
+	
+	def grab_fruit(fruit_height: float):
+		move_arm(fruit_height)
+		move_claw(CLAW_CHOP)
+		move_claw(10, stall=False)
+		move_arm(10, stall=True)
+	
 	
 	# initialize testing (will be triggered with button press and pre-run checks will be run here)
 	imu.calibrate()
@@ -622,12 +647,14 @@ def __define__src_main():
 	l["_get_height"] = _get_height
 	l["scan_fruit"] = scan_fruit
 	l["_convert_height"] = _convert_height
+	l["center_on_fruit"] = center_on_fruit
+	l["grab_fruit"] = grab_fruit
 	__ModuleCache__["src_main"] = __ModuleNamespace__(l)
 	return __ModuleCache__["src_main"]
 
 try: __define__src_main()
 except Exception as e:
-	s = [(20,"src\tree.py"),(206,"src\movement.py"),(410,"src\routes.py"),(462,"src\main.py"),(627,"<module>")]
+	s = [(20,"src\tree.py"),(206,"src\movement.py"),(418,"src\routes.py"),(470,"src\main.py"),(654,"<module>")]
 	def f(x: str):
 		if not x.startswith('  File'): return x
 		l = int(match('.+line (\\d+),.+', x).group(1))
