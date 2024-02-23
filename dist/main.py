@@ -324,11 +324,11 @@ def __define__src_routes():
 	
 	at_door: bool = True # start corner of the robot (exit or opposite of exit)
 	
-	def go_to(location: tuple[int, int]):
-		_go_to_row(location[0])
-		_go_to_col(location[1])
+	def go_to_tree(location: tuple[int, int]):
+		_go_to_row_tree(location[0])
+		_go_to_col_tree(location[1])
 	
-	def _go_to_row(row: int):
+	def _go_to_row_tree(row: int):
 		if at_door:
 			if row == 0:
 				drive(235, 0) # in mm
@@ -344,7 +344,7 @@ def __define__src_routes():
 			elif row == 2:
 				drive(2490, 0) # in mm
 	
-	def _go_to_col(col: int):
+	def _go_to_col_tree(col: int):
 		if at_door:
 			if col == 0:
 				drive(0, 440) # in mm
@@ -362,9 +362,9 @@ def __define__src_routes():
 
 	l = locals()
 	l["at_door"] = at_door
-	l["go_to"] = go_to
-	l["_go_to_row"] = _go_to_row
-	l["_go_to_col"] = _go_to_col
+	l["go_to_tree"] = go_to_tree
+	l["_go_to_row_tree"] = _go_to_row_tree
+	l["_go_to_col_tree"] = _go_to_col_tree
 	__ModuleCache__["src_routes"] = __ModuleNamespace__(l)
 	return __ModuleCache__["src_routes"]
 
@@ -687,7 +687,7 @@ def __define__src_states():
 	imu = __root__src_movement.imu
 	brain = __root__src_movement.brain
 	__root__src_routes = __define__src_routes()
-	go_to = __root__src_routes.go_to
+	go_to_tree = __root__src_routes.go_to_tree
 	__root__src_fruits = __define__src_fruits()
 	orchard = __root__src_fruits.orchard
 	scan_fruit = __root__src_fruits.scan_fruit
@@ -709,7 +709,7 @@ def __define__src_states():
 		brain.screen.clear_screen()
 		brain.screen.print_at("Button Ready", x=50, y=50)
 	
-	# temporary function that contains GRABBING and TRAVELING code
+	# temporary function that contains TRAVELING and GRABBING code
 	def activate_auto():
 		"""
 		What the robot executes.
@@ -717,7 +717,7 @@ def __define__src_states():
 		while controller.buttonA.pressing():
 			wait(5)
 		current_tree: tuple[int, int] = (0, 0)
-		go_to(current_tree)
+		go_to_tree(current_tree)
 		scan_fruit(current_tree)
 		grab_fruit(orchard.get_tree_height(current_tree))
 		Log.return_to_origin()
