@@ -6,12 +6,14 @@
 
 ## Directory:
 
+### fruits.py contains the fruit specific sensor declarations and logic related to the fruits pre-grabbing
+
 #### main.py contains the state logic.
 
-#### movement.py contains the Log (static) class and all motor variable declarations, autonomous commands, and kill switch function.
+#### movement.py contains the Log (static) class and all motor and movement-related sensor variable declarations, autonomous commands, and kill switch function.
 
 #### routes.py contains functions regarding routes to go to any tree.
 
-#### states.py contains the sensor variable declaration, related functions, and functions that will run when the robot is in a specific state.
+#### states.py contains the functions that will run when the robot is in a specific state.
 
 #### tree.py contains the FruitColor, Tree (private), and Orchard classes.
