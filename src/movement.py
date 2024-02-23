@@ -47,6 +47,8 @@ class Log():
 		drive(-Log.get_y_distance(), 0)
 
 # motor names are based on top-down view with proper orientation
+brain = Brain()
+
 northwest_motor: Motor = Motor(Ports.PORT7, 0.2, False) # set boolean so motor spins towards the front of the robot
 northeast_motor: Motor = Motor(Ports.PORT8, 0.2, True) # set boolean so motor spins towards the front of the robot
 southwest_motor: Motor = Motor(Ports.PORT9, 0.2, False) # set boolean so motor spins towards the front of the robot
@@ -55,6 +57,14 @@ southeast_motor: Motor = Motor(Ports.PORT10, 0.2, True) # set boolean so motor s
 arm_motor = Motor(Ports.PORT11, 0.2, True)
 claw_motor = Motor(Ports.PORT12, 0.2, True)
 door_motor = Motor(Ports.PORT1, 0.2, True)
+
+imu = Inertial(Ports.PORT20)
+
+front_range_finder = Sonar(brain.three_wire_port.e) # NOTE: has a range of 30 to 3000 MM
+left_range_finder = Sonar(brain.three_wire_port.g)
+
+basket_sensor_1 = Light(brain.three_wire_port.b)
+basket_sensor_2 = Light(brain.three_wire_port.a)
 
 wheel_diameter: float = 100 # in mm
 def drive(distance_y: float, distance_x: float, speed: float = 40, stall: bool = True) -> None:
@@ -158,6 +168,80 @@ def toggle_door(angle: int = 360, outwards: int = 1, speed: float = 75) -> None:
 	if door_motor.is_spinning():
 		door_motor.spin_to_position(0)
 		toggle_door(angle, outwards, speed)
+
+def reach_wall():
+	dist = left_range_finder.distance(DistanceUnits.CM)
+	# print(dist)
+	if abs(dist-15) > 2:
+		error = dist*.75
+		if error > 50:
+			error = 50
+		drive_speed(20+error, 0)
+	else:
+		drive_speed(0, 0)
+
+past_side_dist = 0
+
+def go_to_bin_position(location: int):
+	# wall following to bin, then reposition in front of correct bin
+	global past_side_dist
+
+	dist = front_range_finder.distance(DistanceUnits.CM)
+
+
+	if abs(dist-10) > 1: # if we are not at the bins yet
+		orientation = imu.rotation()
+		#print(orientation)
+		if abs(orientation) < 10: # if we are pointing relatively forwards...
+			# adjust distance from the wall and keep going
+			side_dist = left_range_finder.distance(DistanceUnits.CM)
+			if abs(side_dist-past_side_dist) > 40:
+				side_dist = past_side_dist
+			else:
+				past_side_dist = side_dist
+			effort = side_dist - 18
+			drive_speed(effort, -20)
+		else: # if we are orientated the wrong way...
+			# spin to the correct orientation so that the sonar readings will be more accurate
+			spin_error = orientation
+			spin_effort = spin_error * 1
+			drive_speed(0, 0)
+
+	else:
+		drive_speed()
+		print("FOLLOW_WALL -> SCAN_FOR_BINS")
+
+
+def _fruit_in_basket():
+	# check both sides of the basket
+	val_1 = basket_sensor_1.value()
+	val_2 = basket_sensor_2.value()
+	return val_1 < 2800 or val_2 < 2760
+
+def drop_fruit():
+	# print(val)
+	if _fruit_in_basket(): # if there is still fruit in the basket
+		# shake the fruit down the basket
+		drive(10, 0,speed=100)
+		drive(-10, 0, speed=100)
+		toggle_door(180, 1)
+		sleep(500)
+		for i in range(2):
+			drive(10, 0, speed=100)
+			drive(-10, 0, speed=100)
+		sleep(500)
+		toggle_door(0)
+		if _fruit_in_basket():
+			drive(0, -10)
+			toggle_door(180, -1)
+			drive(0, 10)
+		else:
+			drive(0,0)
+			print("DROP_FRUIT -> DONE!!")
+	else:
+		door_motor.spin_to_position(0, velocity=40)
+		drive_speed(0, 0)
+		print("DROP_FRUIT -> DONE!!")
 
 controller: Controller = Controller()
 y_button: Controller.Button = controller.buttonY

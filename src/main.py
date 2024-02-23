@@ -9,7 +9,7 @@
 
 # Library imports
 from vex import *
-from states import pre_checks
+from states import pre_checks, controller
 
 # state definitions
 IDLING = 0
@@ -26,10 +26,16 @@ def activate_auto():
 	"""
 	What the robot executes.
 	"""
+	global curr_state
+	
 	while True:
 		if curr_state == IDLING:
 			pre_checks()
 			print("IDLING")
+			while True:
+				if controller.buttonA.pressing():
+					curr_state = TRAVELING
+					break
 		elif curr_state == TRAVELING:
 			print("TRAVELING")
 		elif curr_state == SEARCHING:

@@ -2,11 +2,11 @@ from movement import drive
 
 at_door: bool = True # start corner of the robot (exit or opposite of exit)
 
-def go_to(location: tuple[int, int]):
-	_go_to_row(location[0])
-	_go_to_col(location[1])
+def go_to_tree(location: tuple[int, int]):
+	_go_to_row_tree(location[0])
+	_go_to_col_tree(location[1])
 
-def _go_to_row(row: int):
+def _go_to_row_tree(row: int):
 	if at_door:
 		if row == 0:
 			drive(235, 0) # in mm
@@ -22,7 +22,7 @@ def _go_to_row(row: int):
 		elif row == 2:
 			drive(2490, 0) # in mm
 
-def _go_to_col(col: int):
+def _go_to_col_tree(col: int):
 	if at_door:
 		if col == 0:
 			drive(0, 440) # in mm
