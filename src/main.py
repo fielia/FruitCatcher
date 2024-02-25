@@ -34,8 +34,8 @@ range_finder = Sonar(brain.three_wire_port.e) # NOTE: has a range of 30 to 3000 
 def activate_control():
 	#while button.pressing():
 	#	wait(5)
-	arm_motor.set_position(0)
-	claw_motor.set_position(0)
+	# arm_motor.set_position(0)
+	# claw_motor.set_position(0)
 	while True:
 		global door_opening
 
