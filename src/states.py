@@ -2,11 +2,12 @@ from vex import *
 from movement import Log, drive, rotate, move_arm, move_claw, toggle_squeeze, toggle_door, kill, reset_motors, reach_wall, go_to_bin_position, drop_fruit, reach_wall, controller, imu, brain, reach_bins, drive_speed
 from routes import go_to_tree
 from fruits import orchard, get_fruit
+from tree import FruitColor
 
 def test():
+	test_row: int = 1
 	# add testing code here
-	# get_fruit((0, 0))
-	drive_speed(0, 10)
+	print("uh oh")
 
 ### start of state functions
 
@@ -50,6 +51,7 @@ def obtain_fruit():
 	get_fruit(current_tree)
 
 def return_to_bins():
+	rotate(90)
 	reached: bool = False
 	while not reached:
 		reached = reach_wall()
@@ -60,10 +62,13 @@ def return_to_bins():
 	print("reached bins")
 	reached = False
 	while not reached:
-		reached = go_to_bin_position("ORANGE")# orchard.get_tree_color(current_tree))
-	while True:
-		print("done returning to bins")
-		sleep(5000)
+		reached = go_to_bin_position(FruitColor.LIME)# orchard.get_tree_color(current_tree))
+
+def deposit_fruit():
+	drop_fruit()
+
+def reset_position():
+	print("return to the start position")
 
 ### end of state functions
 

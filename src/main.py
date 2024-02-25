@@ -9,7 +9,7 @@
 
 # Library imports
 from vex import *
-from states import test, calibrate_sensors, end_idling, travel_to_next_tree, obtain_fruit, return_to_bins
+from states import test, calibrate_sensors, end_idling, travel_to_next_tree, obtain_fruit, return_to_bins, deposit_fruit, reset_position
 
 # state definitions
 IDLING = 0
@@ -19,7 +19,7 @@ RETURNING = 3
 DEPOSITING = 4
 RESETTING = 5
 
-curr_state: int = RETURNING
+curr_state: int = IDLING
 
 testing: bool = False
 
@@ -38,27 +38,38 @@ def activate_auto():
 	
 	while True:
 		if curr_state == IDLING:
-			calibrate_sensors()
 			print("IDLING")
+			calibrate_sensors()
 			while True:
 				if end_idling():
 					curr_state = TRAVELING
 					break
 		elif curr_state == TRAVELING:
+			print("TRAVELING")
 			travel_to_next_tree(trees_visited)
 			trees_visited += 1
-			print("TRAVELING")
+			curr_state = OBTAINING
 		elif curr_state == OBTAINING:
-			obtain_fruit()
 			print("OBTAINING")
+			wait(10000) # now put the fruit
+			# obtain_fruit()
+			if trees_visited % 3 == 0:
+				curr_state = RETURNING
+			else:
+				curr_state = TRAVELING
 		elif curr_state == RETURNING:
-			print("returning")
-			return_to_bins()
 			print("RETURNING")
+			return_to_bins()
+			curr_state = DEPOSITING
 		elif curr_state == DEPOSITING:
 			print("DEPOSITING")
+			deposit_fruit()
+			curr_state = RESETTING
 		elif curr_state == RESETTING:
 			print("RESETTING")
+			reset_position()
+			curr_state = TRAVELING
+			return
 
 
 # initialize testing (will be triggered with button press and pre-run checks will be run here)

@@ -1,6 +1,6 @@
 from vex import *
 from tree import FruitColor, Orchard
-from movement import drive_speed, move_arm, move_claw, brain
+from movement import drive, drive_speed, move_arm, move_claw, brain
 
 fruit_sonic = Sonar(brain.three_wire_port.c) # NOTE: has a range of 30 to 3000 MM
 camera = Vision(Ports.PORT14, 43, FruitColor.GRAPEFRUIT, FruitColor.LIME, FruitColor.LEMON, FruitColor.ORANGE_FRUIT)
@@ -20,7 +20,7 @@ def _get_color() -> Signature:
 	Returns:
 		Signature: the signature value of the color found.
 	"""
-	COLORS = [FruitColor.GRAPEFRUIT, FruitColor.LIME, FruitColor.LEMON, FruitColor.ORANGE_FRUIT]
+	COLORS = [FruitColor.LIME, FruitColor.LEMON, FruitColor.ORANGE_FRUIT, FruitColor.GRAPEFRUIT]
 	for color in COLORS:
 		objects: Tuple[VisionObject] = camera.take_snapshot(color, 1)
 		if objects:
@@ -50,15 +50,18 @@ def get_fruit(location: tuple[int, int]) -> None:
 	if orchard.new_tree_discovered(location):
 		fruit_color: Signature = _get_color()
 		_center_on_fruit(fruit_color)
-		# TODO: move to hover over the ultrasonic
+		drive(-40, 0)
+		wait(500)
 		raw_height: float = _get_height()
 		brain.screen.print_at(_convert_height(raw_height), x=100, y=50)
 		orchard.add_tree(fruit_color, _convert_height(raw_height), location)
-		# TODO: move to grab position
+		#wait(500)
+		#drive(-50, 130)
 	else:
 		_center_on_fruit(orchard.get_tree_color(location))
-		# TODO: move to grab position
-	_grab_fruit(orchard.get_tree_height(location))
+		drive(-90, 130)
+	#wait(500)
+	#_grab_fruit(orchard.get_tree_height(location))
 
 def _convert_height(old_height: float) -> float:
 	"""
@@ -73,7 +76,7 @@ def _convert_height(old_height: float) -> float:
 
 	if old_height < 70 or old_height > 3000:
 		return ARM_LOW
-	elif old_height < 150:
+	elif old_height < 160:
 		return ARM_MID
 	elif old_height < 340:
 		return ARM_HIGH
@@ -85,17 +88,19 @@ def _center_on_fruit(fruit_color):
 	cy: float = 10 # default value to enter the while
 	# cx: horizontal, cy: vertical
 	tolerance: float = 5
-	while cx < tolerance and cy < tolerance:
+	while abs(cx) > tolerance and abs(cy) > tolerance:
 		objects = camera.take_snapshot(fruit_color, 1)
+		if not objects:
+			raise Exception("No Fruit Found")
 		fruit = objects[0]
-		cx = fruit.centerX - 50 # subtract the center pixel value to shift to center equal 0
-		cy = fruit.centerY - 50 # subtract the center pixel value to shift to center equal 0
+		cx = fruit.centerX - 158 # subtract the center pixel value to shift to center equal 0
+		cy = fruit.centerY - 106 # subtract the center pixel value to shift to center equal 0
 		effort_x = cx * 0.5
 		effort_y = cy * 0.5
 		drive_speed(effort_y, effort_x)
 
 def _grab_fruit(fruit_height: float):
 	move_arm(fruit_height)
-	move_claw(CLAW_CHOP)
-	move_claw(10, stall=False)
-	move_arm(10, stall=True)
+	#move_claw(CLAW_CHOP)
+	#move_claw(10, stall=False)
+	#move_arm(10, stall=True)

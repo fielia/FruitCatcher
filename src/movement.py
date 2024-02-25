@@ -15,8 +15,7 @@ class Log():
 	_x_distance: float = 0 # right positive, left negatvie
 	_rot_angle: float = 0 # clockwise positive, counterclockwise negative
 
-	@staticmethod
-	def add_distance(y_distance: float = 0, x_distance: float = 0, rot_angle: float = 0) -> None:
+	def add_distance(self, y_distance: float = 0, x_distance: float = 0, rot_angle: float = 0) -> None:
 		"""
 		Adds respective values to the total.
 
@@ -25,27 +24,28 @@ class Log():
 			x_distance (float): right is positive, and left is negative.
 			rot_angle (float): clockwise is positive, and counterclockwise is negative.
 		"""
-		Log._y_distance += y_distance
-		Log._x_distance += x_distance
-		Log._rot_angle += rot_angle
+		self._y_distance += y_distance
+		self._x_distance += x_distance
+		self._rot_angle += rot_angle
 	
-	@staticmethod
-	def get_y_distance() -> float:
-		return Log._y_distance
+	def get_y_distance(self) -> float:
+		return self._y_distance
 	
-	@staticmethod
-	def get_x_distance() -> float:
-		return Log._x_distance
+	def get_x_distance(self) -> float:
+		return self._x_distance
 	
-	@staticmethod
-	def get_rot_angle() -> float:
-		return Log._rot_angle
+	def get_rot_angle(self) -> float:
+		return self._rot_angle
+
+	def reset_log(self) -> None:
+		self._y_distance = 0
+		self._x_distance = 0
+		self._rot_angle = 0
 	
-	@staticmethod
-	def return_to_origin():
-		drive(0, -Log.get_x_distance())
-		rotate(-Log.get_rot_angle())
-		drive(-Log.get_y_distance(), 0)
+	def return_to_origin(self):
+		drive(0, -self.get_x_distance())
+		rotate(-self.get_rot_angle())
+		drive(-self.get_y_distance(), 0)
 
 # motor names are based on top-down view with proper orientation
 brain = Brain()
@@ -59,16 +59,22 @@ arm_motor = Motor(Ports.PORT11, 0.2, True)
 claw_motor = Motor(Ports.PORT12, 0.2, True)
 door_motor = Motor(Ports.PORT1, 0.2, True)
 
+travel_log = Log()
+distance_log = Log()
+
 imu = Inertial(Ports.PORT20)
 
 front_range_finder = Sonar(brain.three_wire_port.e) # NOTE: has a range of 30 to 3000 MM
 left_range_finder = Sonar(brain.three_wire_port.g)
 
+def print_val():
+	print(left_range_finder.distance(MM))
+
 basket_sensor_1 = Light(brain.three_wire_port.b)
 basket_sensor_2 = Light(brain.three_wire_port.a)
 
 wheel_diameter: float = 100 # in mm
-def drive(distance_y: float, distance_x: float, speed: float = 40, stall: bool = True) -> None:
+def drive(distance_y: float, distance_x: float, speed: float = 40, stall: bool = True, log: Log = distance_log) -> None:
 	"""
 	Drives the robot.
 
@@ -87,7 +93,7 @@ def drive(distance_y: float, distance_x: float, speed: float = 40, stall: bool =
 	southwest_motor.spin_for(FORWARD, degrees_y - degrees_x, DEGREES, speed, RPM, wait=False)
 	southeast_motor.spin_for(FORWARD, degrees_y + degrees_x, DEGREES, speed, RPM, wait=stall)
 	
-	Log.add_distance(y_distance=distance_y, x_distance=distance_x)
+	log.add_distance(y_distance=distance_y, x_distance=distance_x)
 
 def drive_speed(speed_y: float = 40, speed_x: float = 40):
 	northwest_motor.spin(FORWARD, speed_y + speed_x, RPM)
@@ -101,7 +107,7 @@ def rotate_speed(rotation_speed: float = 0):
 	southwest_motor.spin(FORWARD, rotation_speed, RPM)
 	southeast_motor.spin(FORWARD, -rotation_speed, RPM)
 
-def rotate(rotation_angle: float, speed: float = 40, stall: bool = True) -> None:
+def rotate(rotation_angle: float, speed: float = 40, stall: bool = True, log: Log = distance_log) -> None:
 	"""
 	Rotates the robot.
 
@@ -111,7 +117,8 @@ def rotate(rotation_angle: float, speed: float = 40, stall: bool = True) -> None
 		stall (bool): wait for the motion to finish before moving on (default is true).
 	"""
 	robot_diameter: float = 380 # in mm
-	rotation_angle -= 10
+	if rotation_angle != 0:
+		rotation_angle -= 10
 	degrees_r: float = (robot_diameter * math.pi) * (rotation_angle / 360) / (wheel_diameter * math.pi) * 360
 	print(degrees_r)
 	
@@ -120,7 +127,7 @@ def rotate(rotation_angle: float, speed: float = 40, stall: bool = True) -> None
 	southwest_motor.spin_for(FORWARD, degrees_r, DEGREES, speed, RPM, wait=False)
 	southeast_motor.spin_for(FORWARD, -degrees_r, DEGREES, speed, RPM, wait=stall)
 
-	Log.add_distance(rot_angle=degrees_r)
+	distance_log.add_distance(rot_angle=degrees_r)
 
 def move_arm(end_position: float, speed: float = 75, stall: bool = True) -> None:
 	"""
@@ -220,17 +227,17 @@ def reach_bins() -> bool:
 		print("FOLLOW_WALL -> POSITIONING_TO_BIN")
 		return True
 
-def go_to_bin_position(fruit_color) -> bool:
+def go_to_bin_position(fruit_color: Signature) -> bool:
 	# drive sideways to the correct bin
 
 	# bins are 38cm wide
 	# ultrasonic is 15cm away from the center of the bot
 	bin_position: float = 0
-	if fruit_color == "LEMON":
+	if fruit_color == FruitColor.LEMON:
 		bin_position = 5.5
-	elif fruit_color == "LIME":
+	elif fruit_color == FruitColor.LIME:
 		bin_position = 45
-	elif fruit_color == "ORANGE":
+	elif fruit_color == FruitColor.ORANGE_FRUIT:
 		bin_position = 82
 
 	wall_dist = left_range_finder.distance(DistanceUnits.CM)

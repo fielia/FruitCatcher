@@ -26,18 +26,10 @@ def __define__src_tree():
 		"""
 	
 		_sensitivity: float = 2
-		GRAPEFRUIT: Signature = Signature(
-			1, 6513, 7443, 6978, 1111, 1431, 1271, _sensitivity, 0
-		)
-		LIME: Signature = Signature(
-			2, -6249, -5385, -5817, -3721, -3023, -3372, _sensitivity, 0
-		)
-		LEMON: Signature = Signature(
-			3, 2607, 3087, 2846, -3461, -3199, -3330, _sensitivity, 0
-		)
-		ORANGE_FRUIT: Signature = Signature(
-			4, 7581, 8071, 7826, -2049, -1809, -1929, _sensitivity, 0
-		)
+		LIME: Signature = Signature(1, -6249, -5385, -5817, -3721, -3023, -3372, _sensitivity, 0)
+		LEMON: Signature = Signature(2, 2607, 3087, 2846, -3461, -3199, -3330, _sensitivity, 0)
+		ORANGE_FRUIT: Signature = Signature(3, 7581, 8071, 7826, -2049, -1809, -1929, _sensitivity, 0)
+		GRAPEFRUIT: Signature = Signature(4, 6513, 7443, 6978, 1111, 1431, 1271, _sensitivity, 0)
 	
 	possible_heights: list[float] = [17, 29, 38]
 	class Tree:
@@ -219,8 +211,7 @@ def __define__src_movement():
 		_x_distance: float = 0 # right positive, left negatvie
 		_rot_angle: float = 0 # clockwise positive, counterclockwise negative
 	
-		@staticmethod
-		def add_distance(y_distance: float = 0, x_distance: float = 0, rot_angle: float = 0) -> None:
+		def add_distance(self, y_distance: float = 0, x_distance: float = 0, rot_angle: float = 0) -> None:
 			"""
 			Adds respective values to the total.
 	
@@ -229,27 +220,28 @@ def __define__src_movement():
 				x_distance (float): right is positive, and left is negative.
 				rot_angle (float): clockwise is positive, and counterclockwise is negative.
 			"""
-			Log._y_distance += y_distance
-			Log._x_distance += x_distance
-			Log._rot_angle += rot_angle
+			self._y_distance += y_distance
+			self._x_distance += x_distance
+			self._rot_angle += rot_angle
 		
-		@staticmethod
-		def get_y_distance() -> float:
-			return Log._y_distance
+		def get_y_distance(self) -> float:
+			return self._y_distance
 		
-		@staticmethod
-		def get_x_distance() -> float:
-			return Log._x_distance
+		def get_x_distance(self) -> float:
+			return self._x_distance
 		
-		@staticmethod
-		def get_rot_angle() -> float:
-			return Log._rot_angle
+		def get_rot_angle(self) -> float:
+			return self._rot_angle
+	
+		def reset_log(self) -> None:
+			self._y_distance = 0
+			self._x_distance = 0
+			self._rot_angle = 0
 		
-		@staticmethod
-		def return_to_origin():
-			drive(0, -Log.get_x_distance())
-			rotate(-Log.get_rot_angle())
-			drive(-Log.get_y_distance(), 0)
+		def return_to_origin(self):
+			drive(0, -self.get_x_distance())
+			rotate(-self.get_rot_angle())
+			drive(-self.get_y_distance(), 0)
 	
 	# motor names are based on top-down view with proper orientation
 	brain = Brain()
@@ -263,16 +255,22 @@ def __define__src_movement():
 	claw_motor = Motor(Ports.PORT12, 0.2, True)
 	door_motor = Motor(Ports.PORT1, 0.2, True)
 	
+	travel_log = Log()
+	distance_log = Log()
+	
 	imu = Inertial(Ports.PORT20)
 	
 	front_range_finder = Sonar(brain.three_wire_port.e) # NOTE: has a range of 30 to 3000 MM
 	left_range_finder = Sonar(brain.three_wire_port.g)
 	
+	def print_val():
+		print(left_range_finder.distance(MM))
+	
 	basket_sensor_1 = Light(brain.three_wire_port.b)
 	basket_sensor_2 = Light(brain.three_wire_port.a)
 	
 	wheel_diameter: float = 100 # in mm
-	def drive(distance_y: float, distance_x: float, speed: float = 40, stall: bool = True) -> None:
+	def drive(distance_y: float, distance_x: float, speed: float = 40, stall: bool = True, log: Log = distance_log) -> None:
 		"""
 		Drives the robot.
 	
@@ -291,7 +289,7 @@ def __define__src_movement():
 		southwest_motor.spin_for(FORWARD, degrees_y - degrees_x, DEGREES, speed, RPM, wait=False)
 		southeast_motor.spin_for(FORWARD, degrees_y + degrees_x, DEGREES, speed, RPM, wait=stall)
 		
-		Log.add_distance(y_distance=distance_y, x_distance=distance_x)
+		log.add_distance(y_distance=distance_y, x_distance=distance_x)
 	
 	def drive_speed(speed_y: float = 40, speed_x: float = 40):
 		northwest_motor.spin(FORWARD, speed_y + speed_x, RPM)
@@ -305,7 +303,7 @@ def __define__src_movement():
 		southwest_motor.spin(FORWARD, rotation_speed, RPM)
 		southeast_motor.spin(FORWARD, -rotation_speed, RPM)
 	
-	def rotate(rotation_angle: float, speed: float = 40, stall: bool = True) -> None:
+	def rotate(rotation_angle: float, speed: float = 40, stall: bool = True, log: Log = distance_log) -> None:
 		"""
 		Rotates the robot.
 	
@@ -315,7 +313,8 @@ def __define__src_movement():
 			stall (bool): wait for the motion to finish before moving on (default is true).
 		"""
 		robot_diameter: float = 380 # in mm
-		rotation_angle -= 10
+		if rotation_angle != 0:
+			rotation_angle -= 10
 		degrees_r: float = (robot_diameter * math.pi) * (rotation_angle / 360) / (wheel_diameter * math.pi) * 360
 		print(degrees_r)
 		
@@ -324,7 +323,7 @@ def __define__src_movement():
 		southwest_motor.spin_for(FORWARD, degrees_r, DEGREES, speed, RPM, wait=False)
 		southeast_motor.spin_for(FORWARD, -degrees_r, DEGREES, speed, RPM, wait=stall)
 	
-		Log.add_distance(rot_angle=degrees_r)
+		distance_log.add_distance(rot_angle=degrees_r)
 	
 	def move_arm(end_position: float, speed: float = 75, stall: bool = True) -> None:
 		"""
@@ -424,17 +423,17 @@ def __define__src_movement():
 			print("FOLLOW_WALL -> POSITIONING_TO_BIN")
 			return True
 	
-	def go_to_bin_position(fruit_color) -> bool:
+	def go_to_bin_position(fruit_color: Signature) -> bool:
 		# drive sideways to the correct bin
 	
 		# bins are 38cm wide
 		# ultrasonic is 15cm away from the center of the bot
 		bin_position: float = 0
-		if fruit_color == "LEMON":
+		if fruit_color == FruitColor.LEMON:
 			bin_position = 5.5
-		elif fruit_color == "LIME":
+		elif fruit_color == FruitColor.LIME:
 			bin_position = 45
-		elif fruit_color == "ORANGE":
+		elif fruit_color == FruitColor.ORANGE_FRUIT:
 			bin_position = 82
 	
 		wall_dist = left_range_finder.distance(DistanceUnits.CM)
@@ -513,9 +512,12 @@ def __define__src_movement():
 	l["arm_motor"] = arm_motor
 	l["claw_motor"] = claw_motor
 	l["door_motor"] = door_motor
+	l["travel_log"] = travel_log
+	l["distance_log"] = distance_log
 	l["imu"] = imu
 	l["front_range_finder"] = front_range_finder
 	l["left_range_finder"] = left_range_finder
+	l["print_val"] = print_val
 	l["basket_sensor_1"] = basket_sensor_1
 	l["basket_sensor_2"] = basket_sensor_2
 	l["wheel_diameter"] = wheel_diameter
@@ -545,49 +547,40 @@ def __define__src_routes():
 	if "src_routes" in __ModuleCache__: return __ModuleCache__["src_routes"]
 	__name__ = "__src_routes__"
 	__root__src_movement = __define__src_movement()
+	travel_log = __root__src_movement.travel_log
 	drive = __root__src_movement.drive
-	
-	at_door: bool = True # start corner of the robot (exit or opposite of exit)
 	
 	# TODO: CHANGE ROUTES TO START AT BINS
 	def go_to_tree(location: tuple[int, int]):
-		_go_to_row_tree(location[0])
+		if location[1] == 0:
+			_go_to_row_tree(location[0])
+		else:
+			travel_log.return_to_origin()
 		_go_to_col_tree(location[1])
+		
 	
 	def _go_to_row_tree(row: int):
-		if at_door:
-			if row == 0:
-				drive(235, 0) # in mm
-			elif row == 1:
-				drive(1000, 0) # in mm
-			elif row == 2:
-				drive(1930, 0) # in mm
-		else:
-			if row == 0:
-				drive(720, 0) # in mm
-			elif row == 1:
-				drive(1605, 0) # in mm
-			elif row == 2:
-				drive(2490, 0) # in mm
+		if row == 0:
+			drive(0, 420, log=travel_log) # in mm
+		elif row == 1:
+			drive(0, 1420, log=travel_log)
+		elif row == 2:
+			drive(0, 2350, log=travel_log)
 	
 	def _go_to_col_tree(col: int):
-		if at_door:
-			if col == 0:
-				drive(0, 440) # in mm
-			elif col == 1:
-				drive(0, 985) # in mm
-			elif col == 2:
-				drive(0, 1530) # in mm
-		else:
-			if col == 0:
-				drive(0, 420) # in mm
-			elif col == 1:
-				drive(0, 955) # in mm
-			elif col == 2:
-				drive(0, 1510) # in mm
+		if col == 0:
+			drive(585, 0, log=travel_log)
+		elif col == 1:
+			drive(0, -200, log=travel_log)
+			drive(650, 0, log=travel_log)
+			drive(0, 200, log=travel_log)
+		elif col == 2:
+			drive(0, -200, log=travel_log)
+			drive(600, 0, log=travel_log)
+			drive(0, 200, log=travel_log)
+		travel_log.reset_log()
 
 	l = locals()
-	l["at_door"] = at_door
 	l["go_to_tree"] = go_to_tree
 	l["_go_to_row_tree"] = _go_to_row_tree
 	l["_go_to_col_tree"] = _go_to_col_tree
@@ -601,6 +594,7 @@ def __define__src_fruits():
 	FruitColor = __root__src_tree.FruitColor
 	Orchard = __root__src_tree.Orchard
 	__root__src_movement = __define__src_movement()
+	drive = __root__src_movement.drive
 	drive_speed = __root__src_movement.drive_speed
 	move_arm = __root__src_movement.move_arm
 	move_claw = __root__src_movement.move_claw
@@ -624,7 +618,7 @@ def __define__src_fruits():
 		Returns:
 			Signature: the signature value of the color found.
 		"""
-		COLORS = [FruitColor.GRAPEFRUIT, FruitColor.LIME, FruitColor.LEMON, FruitColor.ORANGE_FRUIT]
+		COLORS = [FruitColor.LIME, FruitColor.LEMON, FruitColor.ORANGE_FRUIT, FruitColor.GRAPEFRUIT]
 		for color in COLORS:
 			objects: Tuple[VisionObject] = camera.take_snapshot(color, 1)
 			if objects:
@@ -654,15 +648,18 @@ def __define__src_fruits():
 		if orchard.new_tree_discovered(location):
 			fruit_color: Signature = _get_color()
 			_center_on_fruit(fruit_color)
-			# TODO: move to hover over the ultrasonic
+			drive(-40, 0)
+			wait(500)
 			raw_height: float = _get_height()
 			brain.screen.print_at(_convert_height(raw_height), x=100, y=50)
 			orchard.add_tree(fruit_color, _convert_height(raw_height), location)
-			# TODO: move to grab position
+			#wait(500)
+			#drive(-50, 130)
 		else:
 			_center_on_fruit(orchard.get_tree_color(location))
-			# TODO: move to grab position
-		_grab_fruit(orchard.get_tree_height(location))
+			drive(-90, 130)
+		#wait(500)
+		#_grab_fruit(orchard.get_tree_height(location))
 	
 	def _convert_height(old_height: float) -> float:
 		"""
@@ -677,7 +674,7 @@ def __define__src_fruits():
 	
 		if old_height < 70 or old_height > 3000:
 			return ARM_LOW
-		elif old_height < 150:
+		elif old_height < 160:
 			return ARM_MID
 		elif old_height < 340:
 			return ARM_HIGH
@@ -689,20 +686,22 @@ def __define__src_fruits():
 		cy: float = 10 # default value to enter the while
 		# cx: horizontal, cy: vertical
 		tolerance: float = 5
-		while cx < tolerance and cy < tolerance:
+		while abs(cx) > tolerance and abs(cy) > tolerance:
 			objects = camera.take_snapshot(fruit_color, 1)
+			if not objects:
+				raise Exception("No Fruit Found")
 			fruit = objects[0]
-			cx = fruit.centerX - 50 # subtract the center pixel value to shift to center equal 0
-			cy = fruit.centerY - 50 # subtract the center pixel value to shift to center equal 0
+			cx = fruit.centerX - 158 # subtract the center pixel value to shift to center equal 0
+			cy = fruit.centerY - 106 # subtract the center pixel value to shift to center equal 0
 			effort_x = cx * 0.5
 			effort_y = cy * 0.5
 			drive_speed(effort_y, effort_x)
 	
 	def _grab_fruit(fruit_height: float):
 		move_arm(fruit_height)
-		move_claw(CLAW_CHOP)
-		move_claw(10, stall=False)
-		move_arm(10, stall=True)
+		#move_claw(CLAW_CHOP)
+		#move_claw(10, stall=False)
+		#move_arm(10, stall=True)
 
 	l = locals()
 	l["fruit_sonic"] = fruit_sonic
@@ -749,11 +748,13 @@ def __define__src_states():
 	__root__src_fruits = __define__src_fruits()
 	orchard = __root__src_fruits.orchard
 	get_fruit = __root__src_fruits.get_fruit
+	__root__src_tree = __define__src_tree()
+	FruitColor = __root__src_tree.FruitColor
 	
 	def test():
+		test_row: int = 1
 		# add testing code here
-		# get_fruit((0, 0))
-		drive_speed(0, 10)
+		print("uh oh")
 	
 	### start of state functions
 	
@@ -797,6 +798,7 @@ def __define__src_states():
 		get_fruit(current_tree)
 	
 	def return_to_bins():
+		rotate(90)
 		reached: bool = False
 		while not reached:
 			reached = reach_wall()
@@ -807,10 +809,13 @@ def __define__src_states():
 		print("reached bins")
 		reached = False
 		while not reached:
-			reached = go_to_bin_position("ORANGE")# orchard.get_tree_color(current_tree))
-		while True:
-			print("done returning to bins")
-			sleep(5000)
+			reached = go_to_bin_position(FruitColor.LIME)# orchard.get_tree_color(current_tree))
+	
+	def deposit_fruit():
+		drop_fruit()
+	
+	def reset_position():
+		print("return to the start position")
 	
 	### end of state functions
 	
@@ -831,6 +836,8 @@ def __define__src_states():
 	l["travel_to_next_tree"] = travel_to_next_tree
 	l["obtain_fruit"] = obtain_fruit
 	l["return_to_bins"] = return_to_bins
+	l["deposit_fruit"] = deposit_fruit
+	l["reset_position"] = reset_position
 	l["end_idling"] = end_idling
 	__ModuleCache__["src_states"] = __ModuleNamespace__(l)
 	return __ModuleCache__["src_states"]
@@ -855,6 +862,8 @@ def __define__src_main():
 	travel_to_next_tree = __root__src_states.travel_to_next_tree
 	obtain_fruit = __root__src_states.obtain_fruit
 	return_to_bins = __root__src_states.return_to_bins
+	deposit_fruit = __root__src_states.deposit_fruit
+	reset_position = __root__src_states.reset_position
 	
 	# state definitions
 	IDLING = 0
@@ -864,7 +873,7 @@ def __define__src_main():
 	DEPOSITING = 4
 	RESETTING = 5
 	
-	curr_state: int = RETURNING
+	curr_state: int = IDLING
 	
 	testing: bool = False
 	
@@ -883,27 +892,38 @@ def __define__src_main():
 		
 		while True:
 			if curr_state == IDLING:
-				calibrate_sensors()
 				print("IDLING")
+				calibrate_sensors()
 				while True:
 					if end_idling():
 						curr_state = TRAVELING
 						break
 			elif curr_state == TRAVELING:
+				print("TRAVELING")
 				travel_to_next_tree(trees_visited)
 				trees_visited += 1
-				print("TRAVELING")
+				curr_state = OBTAINING
 			elif curr_state == OBTAINING:
-				obtain_fruit()
 				print("OBTAINING")
+				wait(10000) # now put the fruit
+				# obtain_fruit()
+				if trees_visited % 3 == 0:
+					curr_state = RETURNING
+				else:
+					curr_state = TRAVELING
 			elif curr_state == RETURNING:
-				print("returning")
-				return_to_bins()
 				print("RETURNING")
+				return_to_bins()
+				curr_state = DEPOSITING
 			elif curr_state == DEPOSITING:
 				print("DEPOSITING")
+				deposit_fruit()
+				curr_state = RESETTING
 			elif curr_state == RESETTING:
 				print("RESETTING")
+				reset_position()
+				curr_state = TRAVELING
+				return
 	
 	
 	# initialize testing (will be triggered with button press and pre-run checks will be run here)
@@ -924,7 +944,7 @@ def __define__src_main():
 
 try: __define__src_main()
 except Exception as e:
-	s = [(20,"src\tree.py"),(206,"src\movement.py"),(548,"src\routes.py"),(601,"src\fruits.py"),(729,"src\states.py"),(842,"src\main.py"),(924,"<module>")]
+	s = [(20,"src\tree.py"),(198,"src\movement.py"),(550,"src\routes.py"),(594,"src\fruits.py"),(728,"src\states.py"),(849,"src\main.py"),(944,"<module>")]
 	def f(x: str):
 		if not x.startswith('  File'): return x
 		l = int(match('.+line (\\d+),.+', x).group(1))

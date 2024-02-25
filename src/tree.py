@@ -9,18 +9,10 @@ class FruitColor:
 	"""
 
 	_sensitivity: float = 2
-	GRAPEFRUIT: Signature = Signature(
-		1, 6513, 7443, 6978, 1111, 1431, 1271, _sensitivity, 0
-	)
-	LIME: Signature = Signature(
-		2, -6249, -5385, -5817, -3721, -3023, -3372, _sensitivity, 0
-	)
-	LEMON: Signature = Signature(
-		3, 2607, 3087, 2846, -3461, -3199, -3330, _sensitivity, 0
-	)
-	ORANGE_FRUIT: Signature = Signature(
-		4, 7581, 8071, 7826, -2049, -1809, -1929, _sensitivity, 0
-	)
+	LIME: Signature = Signature(1, -6249, -5385, -5817, -3721, -3023, -3372, _sensitivity, 0)
+	LEMON: Signature = Signature(2, 2607, 3087, 2846, -3461, -3199, -3330, _sensitivity, 0)
+	ORANGE_FRUIT: Signature = Signature(3, 7581, 8071, 7826, -2049, -1809, -1929, _sensitivity, 0)
+	GRAPEFRUIT: Signature = Signature(4, 6513, 7443, 6978, 1111, 1431, 1271, _sensitivity, 0)
 
 possible_heights: list[float] = [17, 29, 38]
 class Tree:
