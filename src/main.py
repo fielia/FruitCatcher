@@ -9,16 +9,15 @@
 
 # Library imports
 from vex import *
-from states import calibrate_sensors, end_idling, test
+from states import test, calibrate_sensors, end_idling, travel_to_next_tree, obtain_fruit, return_to_bins
 
 # state definitions
 IDLING = 0
 TRAVELING = 1
-SEARCHING = 2
-GRABBING = 3
-RETURNING = 4
-DEPOSITING = 5
-RESETTING = 6
+OBTAINING = 2
+RETURNING = 3
+DEPOSITING = 4
+RESETTING = 5
 
 curr_state: int = IDLING
 
@@ -33,6 +32,7 @@ def activate_auto():
 	if testing:
 		test()
 		return
+	trees_visited: int = 0
 	
 	while True:
 		if curr_state == IDLING:
@@ -43,12 +43,14 @@ def activate_auto():
 					curr_state = TRAVELING
 					break
 		elif curr_state == TRAVELING:
+			travel_to_next_tree(trees_visited)
+			trees_visited += 1
 			print("TRAVELING")
-		elif curr_state == SEARCHING:
-			print("SEARCHING")
-		elif curr_state == GRABBING:
-			print("GRABBING")
+		elif curr_state == OBTAINING:
+			obtain_fruit()
+			print("OBTAINING")
 		elif curr_state == RETURNING:
+			return_to_bins()
 			print("RETURNING")
 		elif curr_state == DEPOSITING:
 			print("DEPOSITING")
