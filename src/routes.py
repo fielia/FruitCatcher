@@ -2,6 +2,7 @@ from movement import drive
 
 at_door: bool = True # start corner of the robot (exit or opposite of exit)
 
+# TODO: CHANGE ROUTES TO START AT BINS
 def go_to_tree(location: tuple[int, int]):
 	_go_to_row_tree(location[0])
 	_go_to_col_tree(location[1])
