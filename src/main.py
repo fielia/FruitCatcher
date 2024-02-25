@@ -19,15 +19,17 @@ RETURNING = 3
 DEPOSITING = 4
 RESETTING = 5
 
-curr_state: int = IDLING
+curr_state: int = RETURNING
 
-testing: bool = True
+testing: bool = False
 
 def activate_auto():
 	"""
 	What the robot executes.
 	"""
 	global curr_state
+
+	print('activate auto')
 
 	if testing:
 		test()
@@ -50,6 +52,7 @@ def activate_auto():
 			obtain_fruit()
 			print("OBTAINING")
 		elif curr_state == RETURNING:
+			print("returning")
 			return_to_bins()
 			print("RETURNING")
 		elif curr_state == DEPOSITING:

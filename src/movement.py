@@ -95,6 +95,11 @@ def drive_speed(speed_y: float = 40, speed_x: float = 40):
 	southwest_motor.spin(FORWARD, speed_y - speed_x, RPM)
 	southeast_motor.spin(FORWARD, speed_y + speed_x, RPM)
 
+def rotate_speed(rotation_speed: float = 0):
+	northwest_motor.spin(FORWARD, rotation_speed, RPM)
+	northeast_motor.spin(FORWARD, -rotation_speed, RPM)
+	southwest_motor.spin(FORWARD, rotation_speed, RPM)
+	southeast_motor.spin(FORWARD, -rotation_speed, RPM)
 
 def rotate(rotation_angle: float, speed: float = 40, stall: bool = True) -> None:
 	"""
@@ -177,7 +182,7 @@ def reach_wall() -> bool:
 		error = dist*.75
 		if error > 50:
 			error = 50
-		drive_speed(20+error, 0)
+		drive_speed(0, 20+error)
 		return False
 	else:
 		drive_speed(0, 0)
@@ -185,45 +190,62 @@ def reach_wall() -> bool:
 
 past_side_dist = 0
 
-def go_to_bin_position(fruit_color: Signature) -> bool:
-	# wall following to bin, then reposition in front of correct bin
+def reach_bins() -> bool:
+	# wall following to bin
 	global past_side_dist
-
-	bin_position: int = 0
-	if fruit_color == FruitColor.LEMON:
-		bin_position = 0
-	elif fruit_color == FruitColor.LIME:
-		bin_position = 1
-	elif fruit_color == FruitColor.ORANGE_FRUIT:
-		bin_position = 2
 
 	dist = front_range_finder.distance(DistanceUnits.CM)
 
-
 	if abs(dist-10) > 1: # if we are not at the bins yet
-		orientation = imu.rotation()
-		#print(orientation)
-		if abs(orientation) < 10: # if we are pointing relatively forwards...
+		# print("distance to go: "+str(dist-10))
+		# orientation = imu.rotation()
+		# print(orientation)
+		# if abs(orientation) < 10: # if we are pointing relatively forwards...
 			# adjust distance from the wall and keep going
-			side_dist = left_range_finder.distance(DistanceUnits.CM)
-			if abs(side_dist-past_side_dist) > 40:
-				side_dist = past_side_dist
-			else:
-				past_side_dist = side_dist
-			effort = side_dist - 18
-			drive_speed(effort, -20)
-			return False
-		else: # if we are orientated the wrong way...
-			# spin to the correct orientation so that the sonar readings will be more accurate
-			spin_error = orientation
-			spin_effort = spin_error * 1
-			drive_speed(0, 0)
-			return True
-
+		wall_dist = left_range_finder.distance(DistanceUnits.CM)
+		if abs(wall_dist-past_side_dist) > 40: #ignore if it gets a crazy value
+			wall_dist = past_side_dist
+		else:
+			past_side_dist = wall_dist
+		effort = wall_dist - 18
+		drive_speed(-20, effort)
+		return False
+		# else:
+			# heading_error = 0-orientation
+			# heading_effort = 1*heading_error + 10
+			# rotate_speed(heading_effort)
+			# return False
 	else:
 		drive_speed(0, 0)
-		print("FOLLOW_WALL -> SCAN_FOR_BINS")
+		print("FOLLOW_WALL -> POSITIONING_TO_BIN")
 		return True
+
+def go_to_bin_position(fruit_color) -> bool:
+	# drive sideways to the correct bin
+
+	# bins are 38cm wide
+	# ultrasonic is 15cm away from the center of the bot
+	bin_position: float = 0
+	if fruit_color == "LEMON":
+		bin_position = 5.5
+	elif fruit_color == "LIME":
+		bin_position = 45
+	elif fruit_color == "ORANGE":
+		bin_position = 82
+
+	wall_dist = left_range_finder.distance(DistanceUnits.CM)
+	bin_dist = front_range_finder.distance(DistanceUnits.CM)
+	# print("bin_dist: "+str(bin_dist))
+	if abs(wall_dist-bin_position) > 1:
+		y_effort = 2*(wall_dist-bin_position) 	# move however far away from the wall
+		x_effort = -1*(bin_dist-10) 				# stay 10cm in front of the bins
+		drive_speed(x_effort, y_effort)
+		return False
+	else:
+		drive_speed(0, 0)
+		print("POSITIONING_TO_BIN -> DEPOSITING")
+		return True
+	
 
 
 def _fruit_in_basket():

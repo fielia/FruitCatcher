@@ -299,6 +299,11 @@ def __define__src_movement():
 		southwest_motor.spin(FORWARD, speed_y - speed_x, RPM)
 		southeast_motor.spin(FORWARD, speed_y + speed_x, RPM)
 	
+	def rotate_speed(rotation_speed: float = 0):
+		northwest_motor.spin(FORWARD, rotation_speed, RPM)
+		northeast_motor.spin(FORWARD, -rotation_speed, RPM)
+		southwest_motor.spin(FORWARD, rotation_speed, RPM)
+		southeast_motor.spin(FORWARD, -rotation_speed, RPM)
 	
 	def rotate(rotation_angle: float, speed: float = 40, stall: bool = True) -> None:
 		"""
@@ -381,7 +386,7 @@ def __define__src_movement():
 			error = dist*.75
 			if error > 50:
 				error = 50
-			drive_speed(20+error, 0)
+			drive_speed(0, 20+error)
 			return False
 		else:
 			drive_speed(0, 0)
@@ -389,45 +394,62 @@ def __define__src_movement():
 	
 	past_side_dist = 0
 	
-	def go_to_bin_position(fruit_color: Signature) -> bool:
-		# wall following to bin, then reposition in front of correct bin
+	def reach_bins() -> bool:
+		# wall following to bin
 		nonlocal past_side_dist
-	
-		bin_position: int = 0
-		if fruit_color == FruitColor.LEMON:
-			bin_position = 0
-		elif fruit_color == FruitColor.LIME:
-			bin_position = 1
-		elif fruit_color == FruitColor.ORANGE_FRUIT:
-			bin_position = 2
 	
 		dist = front_range_finder.distance(DistanceUnits.CM)
 	
-	
 		if abs(dist-10) > 1: # if we are not at the bins yet
-			orientation = imu.rotation()
-			#print(orientation)
-			if abs(orientation) < 10: # if we are pointing relatively forwards...
+			# print("distance to go: "+str(dist-10))
+			# orientation = imu.rotation()
+			# print(orientation)
+			# if abs(orientation) < 10: # if we are pointing relatively forwards...
 				# adjust distance from the wall and keep going
-				side_dist = left_range_finder.distance(DistanceUnits.CM)
-				if abs(side_dist-past_side_dist) > 40:
-					side_dist = past_side_dist
-				else:
-					past_side_dist = side_dist
-				effort = side_dist - 18
-				drive_speed(effort, -20)
-				return False
-			else: # if we are orientated the wrong way...
-				# spin to the correct orientation so that the sonar readings will be more accurate
-				spin_error = orientation
-				spin_effort = spin_error * 1
-				drive_speed(0, 0)
-				return True
-	
+			wall_dist = left_range_finder.distance(DistanceUnits.CM)
+			if abs(wall_dist-past_side_dist) > 40: #ignore if it gets a crazy value
+				wall_dist = past_side_dist
+			else:
+				past_side_dist = wall_dist
+			effort = wall_dist - 18
+			drive_speed(-20, effort)
+			return False
+			# else:
+				# heading_error = 0-orientation
+				# heading_effort = 1*heading_error + 10
+				# rotate_speed(heading_effort)
+				# return False
 		else:
 			drive_speed(0, 0)
-			print("FOLLOW_WALL -> SCAN_FOR_BINS")
+			print("FOLLOW_WALL -> POSITIONING_TO_BIN")
 			return True
+	
+	def go_to_bin_position(fruit_color) -> bool:
+		# drive sideways to the correct bin
+	
+		# bins are 38cm wide
+		# ultrasonic is 15cm away from the center of the bot
+		bin_position: float = 0
+		if fruit_color == "LEMON":
+			bin_position = 5.5
+		elif fruit_color == "LIME":
+			bin_position = 45
+		elif fruit_color == "ORANGE":
+			bin_position = 82
+	
+		wall_dist = left_range_finder.distance(DistanceUnits.CM)
+		bin_dist = front_range_finder.distance(DistanceUnits.CM)
+		# print("bin_dist: "+str(bin_dist))
+		if abs(wall_dist-bin_position) > 1:
+			y_effort = 2*(wall_dist-bin_position) 	# move however far away from the wall
+			x_effort = -1*(bin_dist-10) 				# stay 10cm in front of the bins
+			drive_speed(x_effort, y_effort)
+			return False
+		else:
+			drive_speed(0, 0)
+			print("POSITIONING_TO_BIN -> DEPOSITING")
+			return True
+		
 	
 	
 	def _fruit_in_basket():
@@ -499,6 +521,7 @@ def __define__src_movement():
 	l["wheel_diameter"] = wheel_diameter
 	l["drive"] = drive
 	l["drive_speed"] = drive_speed
+	l["rotate_speed"] = rotate_speed
 	l["rotate"] = rotate
 	l["move_arm"] = move_arm
 	l["move_claw"] = move_claw
@@ -506,6 +529,7 @@ def __define__src_movement():
 	l["toggle_door"] = toggle_door
 	l["reach_wall"] = reach_wall
 	l["past_side_dist"] = past_side_dist
+	l["reach_bins"] = reach_bins
 	l["go_to_bin_position"] = go_to_bin_position
 	l["_fruit_in_basket"] = _fruit_in_basket
 	l["drop_fruit"] = drop_fruit
@@ -718,6 +742,8 @@ def __define__src_states():
 	controller = __root__src_movement.controller
 	imu = __root__src_movement.imu
 	brain = __root__src_movement.brain
+	reach_bins = __root__src_movement.reach_bins
+	drive_speed = __root__src_movement.drive_speed
 	__root__src_routes = __define__src_routes()
 	go_to_tree = __root__src_routes.go_to_tree
 	__root__src_fruits = __define__src_fruits()
@@ -726,7 +752,8 @@ def __define__src_states():
 	
 	def test():
 		# add testing code here
-		get_fruit((0, 0))
+		# get_fruit((0, 0))
+		drive_speed(0, 10)
 	
 	### start of state functions
 	
@@ -773,9 +800,17 @@ def __define__src_states():
 		reached: bool = False
 		while not reached:
 			reached = reach_wall()
+		print("reached wall")
 		reached = False
 		while not reached:
-			reached = go_to_bin_position(orchard.get_tree_color(current_tree))
+			reached = reach_bins()
+		print("reached bins")
+		reached = False
+		while not reached:
+			reached = go_to_bin_position("ORANGE")# orchard.get_tree_color(current_tree))
+		while True:
+			print("done returning to bins")
+			sleep(5000)
 	
 	### end of state functions
 	
@@ -829,15 +864,17 @@ def __define__src_main():
 	DEPOSITING = 4
 	RESETTING = 5
 	
-	curr_state: int = IDLING
+	curr_state: int = RETURNING
 	
-	testing: bool = True
+	testing: bool = False
 	
 	def activate_auto():
 		"""
 		What the robot executes.
 		"""
 		nonlocal curr_state
+	
+		print('activate auto')
 	
 		if testing:
 			test()
@@ -860,6 +897,7 @@ def __define__src_main():
 				obtain_fruit()
 				print("OBTAINING")
 			elif curr_state == RETURNING:
+				print("returning")
 				return_to_bins()
 				print("RETURNING")
 			elif curr_state == DEPOSITING:
@@ -886,7 +924,7 @@ def __define__src_main():
 
 try: __define__src_main()
 except Exception as e:
-	s = [(20,"src\tree.py"),(206,"src\movement.py"),(524,"src\routes.py"),(577,"src\fruits.py"),(705,"src\states.py"),(807,"src\main.py"),(886,"<module>")]
+	s = [(20,"src\tree.py"),(206,"src\movement.py"),(548,"src\routes.py"),(601,"src\fruits.py"),(729,"src\states.py"),(842,"src\main.py"),(924,"<module>")]
 	def f(x: str):
 		if not x.startswith('  File'): return x
 		l = int(match('.+line (\\d+),.+', x).group(1))

@@ -4,7 +4,7 @@
 		{
 			"label": "Compile",
 			"type": "shell",
-			"command": "python3 compile.py -i src/main.py -o dist/main.py --trace"
+			"command": "python compile.py -i src/main.py -o dist/main.py --trace"
 		}
 	]
 }
