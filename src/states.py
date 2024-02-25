@@ -3,10 +3,10 @@ from movement import Log, drive, rotate, move_arm, move_claw, toggle_squeeze, to
 from routes import go_to_tree
 from fruits import orchard, scan_fruit, CLAW_SQUEEZE, CLAW_CHOP, ARM_LOW, ARM_MID, ARM_HIGH
 
-### state functions
+### start of state functions
 
 # idling function
-def pre_checks():
+def calibrate_sensors():
 	imu.calibrate()
 	brain.screen.print_at("IMU Calibrating...", x=50, y=50)
 	while imu.is_calibrating():
@@ -29,6 +29,16 @@ def activate_auto():
 	Log.return_to_origin()
 
 ### end of state functions
+
+### start of transition functions
+
+def end_idling() -> bool:
+	if controller.buttonA.pressing():
+		brain.screen.clear_screen()
+		return True
+	return False
+
+### end of transition functions
 
 def grab_fruit(fruit_height: float):
 	move_arm(fruit_height)

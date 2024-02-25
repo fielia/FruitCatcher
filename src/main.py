@@ -9,7 +9,7 @@
 
 # Library imports
 from vex import *
-from states import pre_checks, controller
+from states import calibrate_sensors, end_idling
 
 # state definitions
 IDLING = 0
@@ -30,10 +30,10 @@ def activate_auto():
 	
 	while True:
 		if curr_state == IDLING:
-			pre_checks()
+			calibrate_sensors()
 			print("IDLING")
 			while True:
-				if controller.buttonA.pressing():
+				if end_idling():
 					curr_state = TRAVELING
 					break
 		elif curr_state == TRAVELING:
