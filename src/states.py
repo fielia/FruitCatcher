@@ -1,7 +1,11 @@
 from vex import *
 from movement import Log, drive, rotate, move_arm, move_claw, toggle_squeeze, toggle_door, kill, reset_motors, reach_wall, drop_fruit, reach_wall, controller, imu, brain
 from routes import go_to_tree
-from fruits import orchard, scan_fruit, CLAW_SQUEEZE, CLAW_CHOP, ARM_LOW, ARM_MID, ARM_HIGH
+from fruits import orchard, get_fruit
+
+def test():
+	# add testing code here
+	get_fruit((0, 0))
 
 ### start of state functions
 
@@ -24,8 +28,7 @@ def activate_auto():
 		wait(5)
 	current_tree: tuple[int, int] = (0, 0)
 	go_to_tree(current_tree)
-	scan_fruit(current_tree)
-	grab_fruit(orchard.get_tree_height(current_tree))
+	get_fruit(current_tree)
 	Log.return_to_origin()
 
 ### end of state functions
@@ -39,9 +42,3 @@ def end_idling() -> bool:
 	return False
 
 ### end of transition functions
-
-def grab_fruit(fruit_height: float):
-	move_arm(fruit_height)
-	move_claw(CLAW_CHOP)
-	move_claw(10, stall=False)
-	move_arm(10, stall=True)

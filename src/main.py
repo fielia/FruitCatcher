@@ -9,7 +9,7 @@
 
 # Library imports
 from vex import *
-from states import calibrate_sensors, end_idling
+from states import calibrate_sensors, end_idling, test
 
 # state definitions
 IDLING = 0
@@ -22,11 +22,17 @@ RESETTING = 6
 
 curr_state: int = IDLING
 
+testing: bool = True
+
 def activate_auto():
 	"""
 	What the robot executes.
 	"""
 	global curr_state
+
+	if testing:
+		test()
+		return
 	
 	while True:
 		if curr_state == IDLING:

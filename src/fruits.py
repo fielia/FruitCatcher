@@ -40,17 +40,25 @@ def _get_height() -> float:
 	return fruit_sonic.distance(DistanceUnits.MM)
 	
 
-def scan_fruit(location: tuple[int, int]) -> None:
+def get_fruit(location: tuple[int, int]) -> None:
 	"""
 	Calculates the color and height of the tree and adds it into the orchard at the given location.
 
 	Params:
 		location (tuple[int, int]): the location, (x, y) of the tree in a grid system.
 	"""
-	fruit_color: Signature = _get_color()
-	raw_height: float = _get_height()
-	brain.screen.print_at(_convert_height(raw_height), x=100, y=50)
-	orchard.add_tree(fruit_color, _convert_height(raw_height), location)
+	if orchard.new_tree_discovered(location):
+		fruit_color: Signature = _get_color()
+		_center_on_fruit(fruit_color)
+		# TODO: move to hover over the ultrasonic
+		raw_height: float = _get_height()
+		brain.screen.print_at(_convert_height(raw_height), x=100, y=50)
+		orchard.add_tree(fruit_color, _convert_height(raw_height), location)
+		# TODO: move to grab position
+	else:
+		_center_on_fruit(orchard.get_tree_color(location))
+		# TODO: move to grab position
+	_grab_fruit(orchard.get_tree_height(location))
 
 def _convert_height(old_height: float) -> float:
 	"""
@@ -72,7 +80,7 @@ def _convert_height(old_height: float) -> float:
 
 	return 0
 
-def center_on_fruit(fruit_color):
+def _center_on_fruit(fruit_color):
 	cx: float = 10 # default value to enter the while
 	cy: float = 10 # default value to enter the while
 	# cx: horizontal, cy: vertical
@@ -85,3 +93,9 @@ def center_on_fruit(fruit_color):
 		effort_x = cx * 0.5
 		effort_y = cy * 0.5
 		drive_speed(effort_y, effort_x)
+
+def _grab_fruit(fruit_height: float):
+	move_arm(fruit_height)
+	move_claw(CLAW_CHOP)
+	move_claw(10, stall=False)
+	move_arm(10, stall=True)
