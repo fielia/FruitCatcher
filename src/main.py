@@ -140,7 +140,7 @@ def follow_wall():
 	global bot_state
 	global past_side_dist
 
-	dist = front_range_finder.distance(DistanceUnits.CM)
+	dist = fruit_range_finder.distance(DistanceUnits.CM)
 
 	if abs(dist-10) > 1: # if we are not at the bins yet
 		orientation = imu.rotation()
@@ -169,11 +169,16 @@ def scan_for_bins():
 	global bot_state
 
 	# adjust distance from the bins
-	dist = front_range_finder.distance(DistanceUnits.CM)
+	dist = fruit_range_finder.distance(DistanceUnits.CM)
 	error = 10 - dist
 	effort = error * 2
 
 	if abs(error) < 1: # if we are position correctly away from the bins
+		#skip this since the camer is mounted somewhere else now
+		stop()
+		print("SCAN_FOR_BINS -> DRIVE_TO_BINS")
+		bot_state = DRIVE_TO_BINS
+		'''
 		# scan for specific bin color
 		if foundObject("LEMON"):
 			blob, color = determineColor("LEMON")
@@ -185,16 +190,16 @@ def scan_for_bins():
 				print("SCAN_FOR_BINS -> DRIVE_TO_BINS")
 				bot_state = DRIVE_TO_BINS
 		else:
-			spin(-10, effort, 0)
+			spin(-10, effort, 0)'''
 	else:
 		spin(0, effort, 0)
 
 def drive_to_bins():
 	global bot_state
 
-	dist = front_range_finder.distance(DistanceUnits.CM)
+	dist = fruit_range_finder.distance(DistanceUnits.CM)
 	# print(dist)
-	if abs(dist-3) > 0.5:
+	if abs(dist-3.5) > 0.5:
 		error = dist*.1
 		spin(0, -5-error, 0)
 	else:
@@ -270,7 +275,7 @@ print("Calibrating...")
 imu.calibrate()
 sleep(2000)
 print("Robot Armed")
-start()
+start()	
 
 while True:
 	# if bot_state == IDLE:
