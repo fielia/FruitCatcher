@@ -1,4 +1,5 @@
 from vex import *
+from tree import FruitColor
 
 class Log():
 	"""
@@ -169,7 +170,7 @@ def toggle_door(angle: int = 360, outwards: int = 1, speed: float = 75) -> None:
 		door_motor.spin_to_position(0)
 		toggle_door(angle, outwards, speed)
 
-def reach_wall():
+def reach_wall() -> bool:
 	dist = left_range_finder.distance(DistanceUnits.CM)
 	# print(dist)
 	if abs(dist-15) > 2:
@@ -177,14 +178,24 @@ def reach_wall():
 		if error > 50:
 			error = 50
 		drive_speed(20+error, 0)
+		return False
 	else:
 		drive_speed(0, 0)
+		return True
 
 past_side_dist = 0
 
-def go_to_bin_position(location: int):
+def go_to_bin_position(fruit_color: Signature) -> bool:
 	# wall following to bin, then reposition in front of correct bin
 	global past_side_dist
+
+	bin_position: int = 0
+	if fruit_color == FruitColor.LEMON:
+		bin_position = 0
+	elif fruit_color == FruitColor.LIME:
+		bin_position = 1
+	elif fruit_color == FruitColor.ORANGE_FRUIT:
+		bin_position = 2
 
 	dist = front_range_finder.distance(DistanceUnits.CM)
 
@@ -201,15 +212,18 @@ def go_to_bin_position(location: int):
 				past_side_dist = side_dist
 			effort = side_dist - 18
 			drive_speed(effort, -20)
+			return False
 		else: # if we are orientated the wrong way...
 			# spin to the correct orientation so that the sonar readings will be more accurate
 			spin_error = orientation
 			spin_effort = spin_error * 1
 			drive_speed(0, 0)
+			return True
 
 	else:
-		drive_speed()
+		drive_speed(0, 0)
 		print("FOLLOW_WALL -> SCAN_FOR_BINS")
+		return True
 
 
 def _fruit_in_basket():
