@@ -915,7 +915,7 @@ def __define__src_main():
 	
 		trees_visited: int = 0
 		
-		while True:
+		while trees_visited < 9:
 			if curr_state == IDLING:
 				print("IDLING")
 				calibrate_sensors()
@@ -948,7 +948,6 @@ def __define__src_main():
 				print("RESETTING")
 				reset_position()
 				curr_state = TRAVELING
-				return
 	
 	
 	# initialize testing (will be triggered with button press and pre-run checks will be run here)
@@ -969,7 +968,7 @@ def __define__src_main():
 
 try: __define__src_main()
 except Exception as e:
-	s = [(20,"src\tree.py"),(198,"src\movement.py"),(552,"src\routes.py"),(596,"src\fruits.py"),(742,"src\states.py"),(870,"src\main.py"),(969,"<module>")]
+	s = [(20,"src\tree.py"),(198,"src\movement.py"),(552,"src\routes.py"),(596,"src\fruits.py"),(742,"src\states.py"),(870,"src\main.py"),(968,"<module>")]
 	def f(x: str):
 		if not x.startswith('  File'): return x
 		l = int(match('.+line (\\d+),.+', x).group(1))
