@@ -40,7 +40,7 @@ def activate_auto():
 
 	trees_visited: int = 0
 	
-	while True:
+	while trees_visited < 9:
 		if curr_state == IDLING:
 			print("IDLING")
 			calibrate_sensors()
@@ -73,7 +73,6 @@ def activate_auto():
 			print("RESETTING")
 			reset_position()
 			curr_state = TRAVELING
-			return
 
 
 # initialize testing (will be triggered with button press and pre-run checks will be run here)

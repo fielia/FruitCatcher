@@ -463,6 +463,7 @@ def __define__src_movement():
 	
 	def drop_fruit():
 		# print(val)
+		ret_val = False
 		if _fruit_in_basket(): # if there is still fruit in the basket
 			# shake the fruit down the basket
 			drive(40, 0,speed=100)
@@ -481,10 +482,13 @@ def __define__src_movement():
 			else:
 				drive(0,0)
 				print("DROP_FRUIT -> DONE!!")
+				ret_val = True
 		else:
 			door_motor.spin_to_position(0, velocity=40)
 			drive_speed(0, 0)
 			print("DROP_FRUIT -> DONE!!")
+			ret_val = True
+		return ret_val
 	
 	controller: Controller = Controller()
 	y_button: Controller.Button = controller.buttonY
@@ -836,7 +840,9 @@ def __define__src_states():
 			reached = go_to_bin_position(FruitColor.LIME)# orchard.get_tree_color(current_tree))
 	
 	def deposit_fruit():
-		drop_fruit()
+		reached: bool = False
+		while not reached:
+			reached = drop_fruit()
 	
 	def reset_position():
 		print("return to the start position")
@@ -918,7 +924,7 @@ def __define__src_main():
 	
 		trees_visited: int = 0
 		
-		while True:
+		while trees_visited < 9:
 			if curr_state == IDLING:
 				print("IDLING")
 				calibrate_sensors()
@@ -951,7 +957,6 @@ def __define__src_main():
 				print("RESETTING")
 				reset_position()
 				curr_state = TRAVELING
-				return
 	
 	
 	# initialize testing (will be triggered with button press and pre-run checks will be run here)
@@ -972,7 +977,7 @@ def __define__src_main():
 
 try: __define__src_main()
 except Exception as e:
-	s = [(20,"src\tree.py"),(198,"src\movement.py"),(554,"src\routes.py"),(598,"src\fruits.py"),(745,"src\states.py"),(873,"src\main.py"),(972,"<module>")]
+	s = [(20,"src\tree.py"),(198,"src\movement.py"),(558,"src\routes.py"),(602,"src\fruits.py"),(749,"src\states.py"),(879,"src\main.py"),(977,"<module>")]
 	def f(x: str):
 		if not x.startswith('  File'): return x
 		l = int(match('.+line (\\d+),.+', x).group(1))
