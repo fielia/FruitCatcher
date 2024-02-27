@@ -3,12 +3,12 @@ from tree import FruitColor, Orchard
 from movement import drive, drive_speed, move_arm, move_claw, brain
 
 fruit_sonic = Sonar(brain.three_wire_port.c) # NOTE: has a range of 30 to 3000 MM
-camera = Vision(Ports.PORT14, 43, FruitColor.GRAPEFRUIT, FruitColor.LIME, FruitColor.LEMON, FruitColor.ORANGE_FRUIT)
+camera = Vision(Ports.PORT14, 70, FruitColor.LIME) #, FruitColor.LEMON, FruitColor.ORANGE_FRUIT)
 
 orchard = Orchard()
 
 CLAW_SQUEEZE: float = 90
-CLAW_CHOP: float = 115 # position of the claw right after chopping a fruit
+CLAW_CHOP: float = 90 # position of the claw right after chopping a fruit
 ARM_LOW: float = 125
 ARM_MID: float = 1040
 ARM_HIGH: float = 1925
@@ -20,7 +20,7 @@ def _get_color():
 	Returns:
 		Signature: the signature value of the color found.
 	"""
-	COLORS = [FruitColor.LIME, FruitColor.LEMON, FruitColor.ORANGE_FRUIT, FruitColor.GRAPEFRUIT]
+	COLORS = [FruitColor.LIME] #, FruitColor.ORANGE_FRUIT]
 	for color in COLORS:
 		objects: Tuple[VisionObject] = camera.take_snapshot(color, 1)
 		if objects:
@@ -89,10 +89,10 @@ def _convert_height(old_height: float) -> float:
 	return 0
 
 def _center_on_fruit(fruit_color):
-	cx: float = 10 # default value to enter the while
-	cy: float = 10 # default value to enter the while
+	cx: float = 40 # default value to enter the while
+	cy: float = 40 # default value to enter the while
 	# cx: horizontal, cy: vertical
-	tolerance: float = 5
+	tolerance: float = 10
 	while abs(cx) > tolerance or abs(cy) > tolerance:
 		objects = camera.take_snapshot(fruit_color, 1)
 		if not objects:
@@ -100,7 +100,8 @@ def _center_on_fruit(fruit_color):
 			# raise Exception("No Fruit Found")
 			drive_speed(-0.1,-0.1)
 		else:
-			brain.screen.clear_screen(Color.BLACK)
+			print(objects[0].width)
+			brain.screen.clear_screen(Color.GREEN)
 			fruit = objects[0]
 			cx = fruit.centerX - 158 # subtract the center pixel value to shift to center equal 0
 			cy = fruit.centerY - 106 # subtract the center pixel value to shift to center equal 0
@@ -109,7 +110,7 @@ def _center_on_fruit(fruit_color):
 			drive_speed(effort_y, effort_x)
 	drive_speed(0,0)
 	brain.screen.clear_screen(Color.BLUE)
-	sleep(1500)
+	sleep(500)
 
 def _grab_fruit(fruit_height: float):
 	move_arm(fruit_height)

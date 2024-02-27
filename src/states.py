@@ -70,7 +70,9 @@ def return_to_bins():
 		reached = go_to_bin_position(FruitColor.LIME)# orchard.get_tree_color(current_tree))
 
 def deposit_fruit():
-	drop_fruit()
+	reached: bool = False
+	while not reached:
+		reached = drop_fruit()
 
 def reset_position():
 	print("return to the start position")

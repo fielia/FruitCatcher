@@ -245,9 +245,11 @@ def go_to_bin_position(fruit_color: Signature) -> bool:
 	wall_dist = left_range_finder.distance(DistanceUnits.CM)
 	bin_dist = front_range_finder.distance(DistanceUnits.CM)
 	# print("bin_dist: "+str(bin_dist))
-	if abs(wall_dist-bin_position) > 1:
-		y_effort = 2*(wall_dist-bin_position) 	# move however far away from the wall
-		x_effort = -1*(bin_dist-10) 				# stay 10cm in front of the bins
+	wall_error = wall_dist-bin_position
+	bin_error = bin_dist-10
+	if abs(wall_error) > 1 or abs(bin_error) > 1:
+		y_effort = 2 * wall_error 	# move however far away from the wall
+		x_effort = -1 * bin_error 				# stay 10cm in front of the bins
 		drive_speed(x_effort, y_effort)
 		return False
 	else:
@@ -265,15 +267,16 @@ def _fruit_in_basket():
 
 def drop_fruit():
 	# print(val)
+	ret_val = False
 	if _fruit_in_basket(): # if there is still fruit in the basket
 		# shake the fruit down the basket
-		drive(10, 0,speed=100)
-		drive(-10, 0, speed=100)
+		drive(40, 0,speed=100)
+		drive(-40, 0, speed=100)
 		toggle_door(180, 1)
 		sleep(500)
 		for i in range(2):
-			drive(10, 0, speed=100)
-			drive(-10, 0, speed=100)
+			drive(40, 0, speed=100)
+			drive(-40, 0, speed=100)
 		sleep(500)
 		toggle_door(0)
 		if _fruit_in_basket():
@@ -283,10 +286,13 @@ def drop_fruit():
 		else:
 			drive(0,0)
 			print("DROP_FRUIT -> DONE!!")
+			ret_val = True
 	else:
 		door_motor.spin_to_position(0, velocity=40)
 		drive_speed(0, 0)
 		print("DROP_FRUIT -> DONE!!")
+		ret_val = True
+	return ret_val
 
 controller: Controller = Controller()
 y_button: Controller.Button = controller.buttonY

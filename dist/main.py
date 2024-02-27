@@ -25,10 +25,10 @@ def __define__src_tree():
 				_sensitivity (float): the sensitivity value for each color.
 		"""
 	
-		_sensitivity: float = 2
-		LIME: Signature = Signature(1, -6935, -5887, -6410, 583, 2277, 1430, 2.5, 0)
-		LEMON: Signature = Signature(2, -1547, -1001, -1274, -2479, -719, -1598, 2.5, 0)
-		ORANGE_FRUIT: Signature = Signature(3, 2907, 4031, 3468, 961, 2563, 1762, 2.5, 0)
+		_sensitivity: float = 4.5
+		LIME: Signature = Signature(1, -6935, -5887, -6410, 583, 2277, 1430, 4.5, 0)
+		LEMON: Signature = Signature(2, -1547, -1001, -1274, -2479, -719, -1598, 4.5, 0)
+		ORANGE_FRUIT: Signature = Signature(3, 2907, 4031, 3468, 961, 2563, 1762, 4.5, 0)
 		GRAPEFRUIT: Signature = Signature(4, 6513, 7443, 6978, 1111, 1431, 1271, _sensitivity, 0)
 	
 	possible_heights: list[float] = [17, 29, 38]
@@ -441,9 +441,11 @@ def __define__src_movement():
 		wall_dist = left_range_finder.distance(DistanceUnits.CM)
 		bin_dist = front_range_finder.distance(DistanceUnits.CM)
 		# print("bin_dist: "+str(bin_dist))
-		if abs(wall_dist-bin_position) > 1:
-			y_effort = 2*(wall_dist-bin_position) 	# move however far away from the wall
-			x_effort = -1*(bin_dist-10) 				# stay 10cm in front of the bins
+		wall_error = wall_dist-bin_position
+		bin_error = bin_dist-10
+		if abs(wall_error) > 1 or abs(bin_error) > 1:
+			y_effort = 2 * wall_error 	# move however far away from the wall
+			x_effort = -1 * bin_error 				# stay 10cm in front of the bins
 			drive_speed(x_effort, y_effort)
 			return False
 		else:
@@ -463,13 +465,13 @@ def __define__src_movement():
 		# print(val)
 		if _fruit_in_basket(): # if there is still fruit in the basket
 			# shake the fruit down the basket
-			drive(10, 0,speed=100)
-			drive(-10, 0, speed=100)
+			drive(40, 0,speed=100)
+			drive(-40, 0, speed=100)
 			toggle_door(180, 1)
 			sleep(500)
 			for i in range(2):
-				drive(10, 0, speed=100)
-				drive(-10, 0, speed=100)
+				drive(40, 0, speed=100)
+				drive(-40, 0, speed=100)
 			sleep(500)
 			toggle_door(0)
 			if _fruit_in_basket():
@@ -603,12 +605,12 @@ def __define__src_fruits():
 	brain = __root__src_movement.brain
 	
 	fruit_sonic = Sonar(brain.three_wire_port.c) # NOTE: has a range of 30 to 3000 MM
-	camera = Vision(Ports.PORT14, 43, FruitColor.GRAPEFRUIT, FruitColor.LIME, FruitColor.LEMON, FruitColor.ORANGE_FRUIT)
+	camera = Vision(Ports.PORT14, 70, FruitColor.LIME) #, FruitColor.LEMON, FruitColor.ORANGE_FRUIT)
 	
 	orchard = Orchard()
 	
 	CLAW_SQUEEZE: float = 90
-	CLAW_CHOP: float = 115 # position of the claw right after chopping a fruit
+	CLAW_CHOP: float = 90 # position of the claw right after chopping a fruit
 	ARM_LOW: float = 125
 	ARM_MID: float = 1040
 	ARM_HIGH: float = 1925
@@ -620,7 +622,7 @@ def __define__src_fruits():
 		Returns:
 			Signature: the signature value of the color found.
 		"""
-		COLORS = [FruitColor.LIME, FruitColor.LEMON, FruitColor.ORANGE_FRUIT, FruitColor.GRAPEFRUIT]
+		COLORS = [FruitColor.LIME] #, FruitColor.ORANGE_FRUIT]
 		for color in COLORS:
 			objects: Tuple[VisionObject] = camera.take_snapshot(color, 1)
 			if objects:
@@ -689,10 +691,10 @@ def __define__src_fruits():
 		return 0
 	
 	def _center_on_fruit(fruit_color):
-		cx: float = 10 # default value to enter the while
-		cy: float = 10 # default value to enter the while
+		cx: float = 40 # default value to enter the while
+		cy: float = 40 # default value to enter the while
 		# cx: horizontal, cy: vertical
-		tolerance: float = 5
+		tolerance: float = 10
 		while abs(cx) > tolerance or abs(cy) > tolerance:
 			objects = camera.take_snapshot(fruit_color, 1)
 			if not objects:
@@ -700,7 +702,8 @@ def __define__src_fruits():
 				# raise Exception("No Fruit Found")
 				drive_speed(-0.1,-0.1)
 			else:
-				brain.screen.clear_screen(Color.BLACK)
+				print(objects[0].width)
+				brain.screen.clear_screen(Color.GREEN)
 				fruit = objects[0]
 				cx = fruit.centerX - 158 # subtract the center pixel value to shift to center equal 0
 				cy = fruit.centerY - 106 # subtract the center pixel value to shift to center equal 0
@@ -709,7 +712,7 @@ def __define__src_fruits():
 				drive_speed(effort_y, effort_x)
 		drive_speed(0,0)
 		brain.screen.clear_screen(Color.BLUE)
-		sleep(1500)
+		sleep(500)
 	
 	def _grab_fruit(fruit_height: float):
 		move_arm(fruit_height)
@@ -894,9 +897,9 @@ def __define__src_main():
 	DEPOSITING = 4
 	RESETTING = 5
 	
-	curr_state: int = 1000 # don't run normal code
+	curr_state: int = IDLING # don't run normal code
 	
-	testing: bool = True
+	testing: bool = False
 	
 	def activate_auto():
 		"""
@@ -907,10 +910,10 @@ def __define__src_main():
 		print('activate auto')
 	
 		if testing:
-			#test()
+			test()
 			print("OBTAINING")
 			# wait(10000) # now put the fruit
-			obtain_fruit()
+			# obtain_fruit()
 			print("obtained")
 	
 		trees_visited: int = 0
@@ -969,7 +972,7 @@ def __define__src_main():
 
 try: __define__src_main()
 except Exception as e:
-	s = [(20,"src\tree.py"),(198,"src\movement.py"),(552,"src\routes.py"),(596,"src\fruits.py"),(742,"src\states.py"),(870,"src\main.py"),(969,"<module>")]
+	s = [(20,"src\tree.py"),(198,"src\movement.py"),(554,"src\routes.py"),(598,"src\fruits.py"),(745,"src\states.py"),(873,"src\main.py"),(972,"<module>")]
 	def f(x: str):
 		if not x.startswith('  File'): return x
 		l = int(match('.+line (\\d+),.+', x).group(1))

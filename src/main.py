@@ -19,9 +19,9 @@ RETURNING = 3
 DEPOSITING = 4
 RESETTING = 5
 
-curr_state: int = 1000 # don't run normal code
+curr_state: int = IDLING # don't run normal code
 
-testing: bool = True
+testing: bool = False
 
 def activate_auto():
 	"""
@@ -32,10 +32,10 @@ def activate_auto():
 	print('activate auto')
 
 	if testing:
-		#test()
+		test()
 		print("OBTAINING")
 		# wait(10000) # now put the fruit
-		obtain_fruit()
+		# obtain_fruit()
 		print("obtained")
 
 	trees_visited: int = 0
