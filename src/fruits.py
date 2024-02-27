@@ -13,7 +13,7 @@ ARM_LOW: float = 125
 ARM_MID: float = 1040
 ARM_HIGH: float = 1925
 
-def _get_color() -> Signature:
+def _get_color():
 	"""
 	Finds a fruit and returns its color.
 
@@ -27,7 +27,7 @@ def _get_color() -> Signature:
 			return color
 
 	brain.screen.print_at("No fruit found.   ", x=50, y=100)
-	return Signature(0, 0, 0, 0, 0, 0, 0, 0, 0)
+	return 0 #Signature(0, 0, 0, 0, 0, 0, 0, 0, 0)
 	# raise Exception("Camera did not detect a fruit.")
 
 def _get_height() -> float:
@@ -48,20 +48,25 @@ def get_fruit(location: tuple[int, int]) -> None:
 		location (tuple[int, int]): the location, (x, y) of the tree in a grid system.
 	"""
 	if orchard.new_tree_discovered(location):
-		fruit_color: Signature = _get_color()
-		_center_on_fruit(fruit_color)
-		drive(-40, 0)
-		wait(500)
-		raw_height: float = _get_height()
-		brain.screen.print_at(_convert_height(raw_height), x=100, y=50)
-		orchard.add_tree(fruit_color, _convert_height(raw_height), location)
+		sig = _get_color()
+		if sig:
+			fruit_color: Signature = sig
+			_center_on_fruit(fruit_color)
+			print("finished centering on fruit")
+			drive(-10, 0)
+			wait(500)
+			raw_height: float = _get_height()
+			brain.screen.print_at(_convert_height(raw_height), x=100, y=50)
+			orchard.add_tree(fruit_color, _convert_height(raw_height), location)
+			drive(-50, 130)
+		else:
+			print("no fruit found")
 		#wait(500)
-		#drive(-50, 130)
 	else:
 		_center_on_fruit(orchard.get_tree_color(location))
 		drive(-90, 130)
 	#wait(500)
-	#_grab_fruit(orchard.get_tree_height(location))
+	_grab_fruit(orchard.get_tree_height(location))
 
 def _convert_height(old_height: float) -> float:
 	"""
@@ -88,19 +93,26 @@ def _center_on_fruit(fruit_color):
 	cy: float = 10 # default value to enter the while
 	# cx: horizontal, cy: vertical
 	tolerance: float = 5
-	while abs(cx) > tolerance and abs(cy) > tolerance:
+	while abs(cx) > tolerance or abs(cy) > tolerance:
 		objects = camera.take_snapshot(fruit_color, 1)
 		if not objects:
-			raise Exception("No Fruit Found")
-		fruit = objects[0]
-		cx = fruit.centerX - 158 # subtract the center pixel value to shift to center equal 0
-		cy = fruit.centerY - 106 # subtract the center pixel value to shift to center equal 0
-		effort_x = cx * 0.5
-		effort_y = cy * 0.5
-		drive_speed(effort_y, effort_x)
+			brain.screen.clear_screen(Color.RED)
+			# raise Exception("No Fruit Found")
+			drive_speed(-0.1,-0.1)
+		else:
+			brain.screen.clear_screen(Color.BLACK)
+			fruit = objects[0]
+			cx = fruit.centerX - 158 # subtract the center pixel value to shift to center equal 0
+			cy = fruit.centerY - 106 # subtract the center pixel value to shift to center equal 0
+			effort_x = cx * -0.2
+			effort_y = cy * -0.2
+			drive_speed(effort_y, effort_x)
+	drive_speed(0,0)
+	brain.screen.clear_screen(Color.BLUE)
+	sleep(1500)
 
 def _grab_fruit(fruit_height: float):
 	move_arm(fruit_height)
-	#move_claw(CLAW_CHOP)
-	#move_claw(10, stall=False)
-	#move_arm(10, stall=True)
+	move_claw(CLAW_CHOP)
+	move_arm(10, stall=True)
+	move_claw(10, stall=False)

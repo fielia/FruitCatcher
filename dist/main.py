@@ -26,9 +26,9 @@ def __define__src_tree():
 		"""
 	
 		_sensitivity: float = 2
-		LIME: Signature = Signature(1, -6249, -5385, -5817, -3721, -3023, -3372, _sensitivity, 0)
-		LEMON: Signature = Signature(2, 2607, 3087, 2846, -3461, -3199, -3330, _sensitivity, 0)
-		ORANGE_FRUIT: Signature = Signature(3, 7581, 8071, 7826, -2049, -1809, -1929, _sensitivity, 0)
+		LIME: Signature = Signature(1, -6935, -5887, -6410, 583, 2277, 1430, 2.5, 0)
+		LEMON: Signature = Signature(2, -1547, -1001, -1274, -2479, -719, -1598, 2.5, 0)
+		ORANGE_FRUIT: Signature = Signature(3, 2907, 4031, 3468, 961, 2563, 1762, 2.5, 0)
 		GRAPEFRUIT: Signature = Signature(4, 6513, 7443, 6978, 1111, 1431, 1271, _sensitivity, 0)
 	
 	possible_heights: list[float] = [17, 29, 38]
@@ -254,6 +254,8 @@ def __define__src_movement():
 	arm_motor = Motor(Ports.PORT11, 0.2, True)
 	claw_motor = Motor(Ports.PORT12, 0.2, True)
 	door_motor = Motor(Ports.PORT1, 0.2, True)
+	
+	claw_motor.set_timeout(1500)
 	
 	travel_log = Log()
 	distance_log = Log()
@@ -611,7 +613,7 @@ def __define__src_fruits():
 	ARM_MID: float = 1040
 	ARM_HIGH: float = 1925
 	
-	def _get_color() -> Signature:
+	def _get_color():
 		"""
 		Finds a fruit and returns its color.
 	
@@ -625,7 +627,7 @@ def __define__src_fruits():
 				return color
 	
 		brain.screen.print_at("No fruit found.   ", x=50, y=100)
-		return Signature(0, 0, 0, 0, 0, 0, 0, 0, 0)
+		return 0 #Signature(0, 0, 0, 0, 0, 0, 0, 0, 0)
 		# raise Exception("Camera did not detect a fruit.")
 	
 	def _get_height() -> float:
@@ -646,20 +648,25 @@ def __define__src_fruits():
 			location (tuple[int, int]): the location, (x, y) of the tree in a grid system.
 		"""
 		if orchard.new_tree_discovered(location):
-			fruit_color: Signature = _get_color()
-			_center_on_fruit(fruit_color)
-			drive(-40, 0)
-			wait(500)
-			raw_height: float = _get_height()
-			brain.screen.print_at(_convert_height(raw_height), x=100, y=50)
-			orchard.add_tree(fruit_color, _convert_height(raw_height), location)
+			sig = _get_color()
+			if sig:
+				fruit_color: Signature = sig
+				_center_on_fruit(fruit_color)
+				print("finished centering on fruit")
+				drive(-10, 0)
+				wait(500)
+				raw_height: float = _get_height()
+				brain.screen.print_at(_convert_height(raw_height), x=100, y=50)
+				orchard.add_tree(fruit_color, _convert_height(raw_height), location)
+				drive(-50, 130)
+			else:
+				print("no fruit found")
 			#wait(500)
-			#drive(-50, 130)
 		else:
 			_center_on_fruit(orchard.get_tree_color(location))
 			drive(-90, 130)
 		#wait(500)
-		#_grab_fruit(orchard.get_tree_height(location))
+		_grab_fruit(orchard.get_tree_height(location))
 	
 	def _convert_height(old_height: float) -> float:
 		"""
@@ -686,22 +693,29 @@ def __define__src_fruits():
 		cy: float = 10 # default value to enter the while
 		# cx: horizontal, cy: vertical
 		tolerance: float = 5
-		while abs(cx) > tolerance and abs(cy) > tolerance:
+		while abs(cx) > tolerance or abs(cy) > tolerance:
 			objects = camera.take_snapshot(fruit_color, 1)
 			if not objects:
-				raise Exception("No Fruit Found")
-			fruit = objects[0]
-			cx = fruit.centerX - 158 # subtract the center pixel value to shift to center equal 0
-			cy = fruit.centerY - 106 # subtract the center pixel value to shift to center equal 0
-			effort_x = cx * 0.5
-			effort_y = cy * 0.5
-			drive_speed(effort_y, effort_x)
+				brain.screen.clear_screen(Color.RED)
+				# raise Exception("No Fruit Found")
+				drive_speed(-0.1,-0.1)
+			else:
+				brain.screen.clear_screen(Color.BLACK)
+				fruit = objects[0]
+				cx = fruit.centerX - 158 # subtract the center pixel value to shift to center equal 0
+				cy = fruit.centerY - 106 # subtract the center pixel value to shift to center equal 0
+				effort_x = cx * -0.2
+				effort_y = cy * -0.2
+				drive_speed(effort_y, effort_x)
+		drive_speed(0,0)
+		brain.screen.clear_screen(Color.BLUE)
+		sleep(1500)
 	
 	def _grab_fruit(fruit_height: float):
 		move_arm(fruit_height)
-		#move_claw(CLAW_CHOP)
-		#move_claw(10, stall=False)
-		#move_arm(10, stall=True)
+		move_claw(CLAW_CHOP)
+		move_arm(10, stall=True)
+		move_claw(10, stall=False)
 
 	l = locals()
 	l["fruit_sonic"] = fruit_sonic
@@ -748,12 +762,19 @@ def __define__src_states():
 	__root__src_fruits = __define__src_fruits()
 	orchard = __root__src_fruits.orchard
 	get_fruit = __root__src_fruits.get_fruit
+	_center_on_fruit = __root__src_fruits._center_on_fruit
+	_get_color = __root__src_fruits._get_color
 	__root__src_tree = __define__src_tree()
 	FruitColor = __root__src_tree.FruitColor
 	
 	def test():
 		test_row: int = 1
 		# add testing code here
+		print("starting test...")
+		while True:
+			_center_on_fruit(FruitColor.LEMON)
+			brain.screen.clear_screen(Color.PURPLE)
+			sleep(2000)
 		print("uh oh")
 	
 	### start of state functions
@@ -873,9 +894,9 @@ def __define__src_main():
 	DEPOSITING = 4
 	RESETTING = 5
 	
-	curr_state: int = IDLING
+	curr_state: int = 1000 # don't run normal code
 	
-	testing: bool = False
+	testing: bool = True
 	
 	def activate_auto():
 		"""
@@ -886,8 +907,12 @@ def __define__src_main():
 		print('activate auto')
 	
 		if testing:
-			test()
-			return
+			#test()
+			print("OBTAINING")
+			# wait(10000) # now put the fruit
+			obtain_fruit()
+			print("obtained")
+	
 		trees_visited: int = 0
 		
 		while True:
@@ -905,8 +930,8 @@ def __define__src_main():
 				curr_state = OBTAINING
 			elif curr_state == OBTAINING:
 				print("OBTAINING")
-				wait(10000) # now put the fruit
-				# obtain_fruit()
+				# wait(10000) # now put the fruit
+				obtain_fruit()
 				if trees_visited % 3 == 0:
 					curr_state = RETURNING
 				else:
@@ -944,7 +969,7 @@ def __define__src_main():
 
 try: __define__src_main()
 except Exception as e:
-	s = [(20,"src\tree.py"),(198,"src\movement.py"),(550,"src\routes.py"),(594,"src\fruits.py"),(728,"src\states.py"),(849,"src\main.py"),(944,"<module>")]
+	s = [(20,"src\tree.py"),(198,"src\movement.py"),(552,"src\routes.py"),(596,"src\fruits.py"),(742,"src\states.py"),(870,"src\main.py"),(969,"<module>")]
 	def f(x: str):
 		if not x.startswith('  File'): return x
 		l = int(match('.+line (\\d+),.+', x).group(1))

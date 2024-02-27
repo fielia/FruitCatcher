@@ -59,6 +59,8 @@ arm_motor = Motor(Ports.PORT11, 0.2, True)
 claw_motor = Motor(Ports.PORT12, 0.2, True)
 door_motor = Motor(Ports.PORT1, 0.2, True)
 
+claw_motor.set_timeout(1500)
+
 travel_log = Log()
 distance_log = Log()
 

@@ -1,12 +1,17 @@
 from vex import *
 from movement import Log, drive, rotate, move_arm, move_claw, toggle_squeeze, toggle_door, kill, reset_motors, reach_wall, go_to_bin_position, drop_fruit, reach_wall, controller, imu, brain, reach_bins, drive_speed
 from routes import go_to_tree
-from fruits import orchard, get_fruit
+from fruits import orchard, get_fruit, _center_on_fruit, _get_color
 from tree import FruitColor
 
 def test():
 	test_row: int = 1
 	# add testing code here
+	print("starting test...")
+	while True:
+		_center_on_fruit(FruitColor.LEMON)
+		brain.screen.clear_screen(Color.PURPLE)
+		sleep(2000)
 	print("uh oh")
 
 ### start of state functions
