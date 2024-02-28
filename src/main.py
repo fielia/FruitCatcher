@@ -19,7 +19,7 @@ RETURNING = 3
 DEPOSITING = 4
 RESETTING = 5
 
-curr_state: int = IDLING # don't run normal code
+curr_state: int = IDLING
 
 testing: bool = False
 
@@ -76,6 +76,7 @@ def activate_auto():
 			reset_position()
 			round_over = True
 			curr_state = TRAVELING
+			return
 
 
 # initialize testing (will be triggered with button press and pre-run checks will be run here)

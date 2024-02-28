@@ -3,12 +3,12 @@ from tree import FruitColor, Orchard
 from movement import drive, drive_speed, move_arm, move_claw, brain
 
 fruit_sonic = Sonar(brain.three_wire_port.c) # NOTE: has a range of 30 to 3000 MM
-camera = Vision(Ports.PORT14, 70, FruitColor.LIME) #, FruitColor.LEMON, FruitColor.ORANGE_FRUIT)
+camera = Vision(Ports.PORT14, 70, FruitColor.LIME, FruitColor.LEMON, FruitColor.ORANGE_FRUIT) #FruitColor.LEMON, 
 
 orchard = Orchard()
 
 CLAW_SQUEEZE: float = 90
-CLAW_CHOP: float = 90 # position of the claw right after chopping a fruit
+CLAW_CHOP: float = 105 # position of the claw right after chopping a fruit
 ARM_LOW: float = 125
 ARM_MID: float = 1040
 ARM_HIGH: float = 1925
@@ -20,16 +20,21 @@ def _get_color():
 	Returns:
 		Signature: the signature value of the color found.
 	"""
-	COLORS = [FruitColor.LIME] #, FruitColor.ORANGE_FRUIT]
+	COLORS = [FruitColor.LIME, FruitColor.ORANGE_FRUIT]
 	for color in COLORS:
 		objects: Tuple[VisionObject] = camera.take_snapshot(color, 1)
 		if objects:
+			if color == FruitColor.LIME:
+				print("LIME")
+			elif color == FruitColor.ORANGE_FRUIT:
+				print("ORANGE")
+			else:
+				print("WTF?!")
 			return color
 
 	brain.screen.print_at("No fruit found.   ", x=50, y=100)
 	return 0 #Signature(0, 0, 0, 0, 0, 0, 0, 0, 0)
-	# raise Exception("Camera did not detect a fruit.")
-
+	
 def _get_height() -> float:
 	"""
 	Returns the distance found by the ultrasonic sensor.
@@ -56,6 +61,7 @@ def get_fruit(location: tuple[int, int]) -> None:
 			drive(-10, 0)
 			wait(500)
 			raw_height: float = _get_height()
+			print(_convert_height(raw_height))
 			brain.screen.print_at(_convert_height(raw_height), x=100, y=50)
 			orchard.add_tree(fruit_color, _convert_height(raw_height), location)
 			drive(-50, 130)
@@ -67,6 +73,7 @@ def get_fruit(location: tuple[int, int]) -> None:
 		drive(-90, 130)
 	#wait(500)
 	_grab_fruit(orchard.get_tree_height(location))
+	drive(90, -130)
 
 def _convert_height(old_height: float) -> float:
 	"""
@@ -97,11 +104,14 @@ def _center_on_fruit(fruit_color):
 		objects = camera.take_snapshot(fruit_color, 1)
 		if not objects:
 			brain.screen.clear_screen(Color.RED)
-			# raise Exception("No Fruit Found")
 			drive_speed(-0.1,-0.1)
+			wait(50)
 		else:
-			print(objects[0].width)
-			brain.screen.clear_screen(Color.GREEN)
+			# print(objects[0].width)
+			if fruit_color == FruitColor.LIME:
+				brain.screen.clear_screen(Color.GREEN)
+			elif fruit_color == FruitColor.ORANGE_FRUIT:
+				brain.screen.clear_screen(Color.ORANGE)
 			fruit = objects[0]
 			cx = fruit.centerX - 158 # subtract the center pixel value to shift to center equal 0
 			cy = fruit.centerY - 106 # subtract the center pixel value to shift to center equal 0
@@ -114,6 +124,6 @@ def _center_on_fruit(fruit_color):
 
 def _grab_fruit(fruit_height: float):
 	move_arm(fruit_height)
-	move_claw(CLAW_CHOP)
+	move_claw(CLAW_SQUEEZE, speed=30)
 	move_arm(10, stall=True)
 	move_claw(10, stall=False)
