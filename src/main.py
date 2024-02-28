@@ -32,15 +32,17 @@ def activate_auto():
 	print('activate auto')
 
 	if testing:
-		test()
 		print("OBTAINING")
+		test()
+		print("obtained")
 		# wait(10000) # now put the fruit
 		# obtain_fruit()
-		print("obtained")
 
 	trees_visited: int = 0
-	
-	while trees_visited < 9:
+	round_over = False
+
+	while trees_visited < 6 or not round_over:
+		round_over = False
 		if curr_state == IDLING:
 			print("IDLING")
 			calibrate_sensors()
@@ -72,6 +74,7 @@ def activate_auto():
 		elif curr_state == RESETTING:
 			print("RESETTING")
 			reset_position()
+			round_over = True
 			curr_state = TRAVELING
 
 

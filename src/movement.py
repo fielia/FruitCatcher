@@ -185,7 +185,7 @@ def toggle_door(angle: int = 360, outwards: int = 1, speed: float = 75) -> None:
 		toggle_door(angle, outwards, speed)
 
 def reach_wall() -> bool:
-	dist = left_range_finder.distance(DistanceUnits.CM)
+	dist: float = left_range_finder.distance(DistanceUnits.CM)
 	# print(dist)
 	if abs(dist-15) > 2:
 		error = dist*.75

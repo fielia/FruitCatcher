@@ -381,7 +381,7 @@ def __define__src_movement():
 			toggle_door(angle, outwards, speed)
 	
 	def reach_wall() -> bool:
-		dist = left_range_finder.distance(DistanceUnits.CM)
+		dist: float = left_range_finder.distance(DistanceUnits.CM)
 		# print(dist)
 		if abs(dist-15) > 2:
 			error = dist*.75
@@ -571,20 +571,20 @@ def __define__src_routes():
 		if row == 0:
 			drive(0, 420, log=travel_log) # in mm
 		elif row == 1:
-			drive(0, 1420, log=travel_log)
+			drive(0, 1400, log=travel_log)
 		elif row == 2:
 			drive(0, 2350, log=travel_log)
 	
 	def _go_to_col_tree(col: int):
 		if col == 0:
-			drive(585, 0, log=travel_log)
+			drive(595, 0, log=travel_log)
 		elif col == 1:
 			drive(0, -200, log=travel_log)
 			drive(650, 0, log=travel_log)
 			drive(0, 200, log=travel_log)
 		elif col == 2:
 			drive(0, -200, log=travel_log)
-			drive(600, 0, log=travel_log)
+			drive(630, 0, log=travel_log)
 			drive(0, 200, log=travel_log)
 		travel_log.reset_log()
 
@@ -808,11 +808,11 @@ def __define__src_states():
 		elif trees_visited == 2:
 			current_tree = (0, 2)
 		elif trees_visited == 3:
-			current_tree = (2, 0)
+			current_tree = (1, 0)
 		elif trees_visited == 4:
-			current_tree = (2, 1)
+			current_tree = (1, 1)
 		elif trees_visited == 5:
-			current_tree = (2, 2)
+			current_tree = (1, 2)
 		elif trees_visited == 6:
 			current_tree = (2, 0)
 		elif trees_visited == 7:
@@ -826,6 +826,7 @@ def __define__src_states():
 		get_fruit(current_tree)
 	
 	def return_to_bins():
+		drive(0, -50)
 		rotate(90)
 		reached: bool = False
 		while not reached:
@@ -845,6 +846,11 @@ def __define__src_states():
 			reached = drop_fruit()
 	
 	def reset_position():
+		reached = False
+		while not reached:
+			reached = reach_wall()
+		rotate(-90)
+		drive(100, 0)
 		print("return to the start position")
 	
 	### end of state functions
@@ -923,8 +929,10 @@ def __define__src_main():
 			print("obtained")
 	
 		trees_visited: int = 0
-		
-		while trees_visited < 9:
+		round_over = False
+	
+		while trees_visited < 6 or not round_over:
+			round_over = False
 			if curr_state == IDLING:
 				print("IDLING")
 				calibrate_sensors()
@@ -956,6 +964,7 @@ def __define__src_main():
 			elif curr_state == RESETTING:
 				print("RESETTING")
 				reset_position()
+				round_over = True
 				curr_state = TRAVELING
 	
 	
@@ -977,7 +986,7 @@ def __define__src_main():
 
 try: __define__src_main()
 except Exception as e:
-	s = [(20,"src\tree.py"),(198,"src\movement.py"),(558,"src\routes.py"),(602,"src\fruits.py"),(749,"src\states.py"),(879,"src\main.py"),(977,"<module>")]
+	s = [(20,"src\tree.py"),(198,"src\movement.py"),(558,"src\routes.py"),(602,"src\fruits.py"),(749,"src\states.py"),(885,"src\main.py"),(986,"<module>")]
 	def f(x: str):
 		if not x.startswith('  File'): return x
 		l = int(match('.+line (\\d+),.+', x).group(1))

@@ -9,7 +9,7 @@ def test():
 	# add testing code here
 	print("starting test...")
 	while True:
-		_center_on_fruit(FruitColor.LEMON)
+		_center_on_fruit(FruitColor.ORANGE_FRUIT)
 		brain.screen.clear_screen(Color.PURPLE)
 		sleep(2000)
 	print("uh oh")
@@ -38,11 +38,11 @@ def travel_to_next_tree(trees_visited: int):
 	elif trees_visited == 2:
 		current_tree = (0, 2)
 	elif trees_visited == 3:
-		current_tree = (2, 0)
+		current_tree = (1, 0)
 	elif trees_visited == 4:
-		current_tree = (2, 1)
+		current_tree = (1, 1)
 	elif trees_visited == 5:
-		current_tree = (2, 2)
+		current_tree = (1, 2)
 	elif trees_visited == 6:
 		current_tree = (2, 0)
 	elif trees_visited == 7:
@@ -56,6 +56,7 @@ def obtain_fruit():
 	get_fruit(current_tree)
 
 def return_to_bins():
+	drive(0, -50)
 	rotate(90)
 	reached: bool = False
 	while not reached:
@@ -75,6 +76,11 @@ def deposit_fruit():
 		reached = drop_fruit()
 
 def reset_position():
+	reached = False
+	while not reached:
+		reached = reach_wall()
+	rotate(-90)
+	drive(100, 0)
 	print("return to the start position")
 
 ### end of state functions
