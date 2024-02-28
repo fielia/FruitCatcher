@@ -99,18 +99,22 @@ class Orchard:
 			return False
 		self._fill_colors(location[0], color)
 		self._at_location(location).set_height(height)
-		self._fill_third_tree(location[0])
+		# self._fill_third_tree(location[0])
 		return True
 
 	def get_tree_color(self, location: tuple[int, int]) -> Signature:
 		if self._at_location(location):
 			return self._at_location(location).get_fruit_color()
-		raise Exception("Error: Tree at location " + str(location) + " not found. Query Variable: Color.")
+		print("TREE NOT FOUND")
+		return Signature(7, 0, 0, 0, 0, 0, 0, 0, 0)
+		# raise Exception("Error: Tree at location " + str(location) + " not found. Query Variable: Color.")
 
 	def get_tree_height(self, location: tuple[int, int]) -> float:
 		if self._at_location(location).get_height() != 0:
 			return self._at_location(location).get_height()
-		raise Exception("Error: Tree at location " + str(location) + " not found. Query Variable: Height.")
+		print("TREE NOT FOUND")
+		return 0
+		# raise Exception("Error: Tree at location " + str(location) + " not found. Query Variable: Height.")
 
 	def _fill_colors(self, row: int, color: Signature) -> None:
 		for tree in self._trees[row]:

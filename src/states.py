@@ -5,13 +5,11 @@ from fruits import orchard, get_fruit, _center_on_fruit, _get_color
 from tree import FruitColor
 
 def test():
-	test_row: int = 1
 	# add testing code here
 	print("starting test...")
-	while True:
-		_center_on_fruit(FruitColor.LEMON)
-		brain.screen.clear_screen(Color.PURPLE)
-		sleep(2000)
+	obtain_fruit()
+	brain.screen.clear_screen(Color.PURPLE)
+	sleep(1000)
 	print("uh oh")
 
 ### start of state functions
@@ -51,6 +49,7 @@ def travel_to_next_tree(trees_visited: int):
 		current_tree = (2, 2)
 
 	go_to_tree(current_tree)
+	wait(1000)
 
 def obtain_fruit():
 	get_fruit(current_tree)
@@ -68,6 +67,8 @@ def return_to_bins():
 	reached = False
 	while not reached:
 		reached = go_to_bin_position(FruitColor.LIME)# orchard.get_tree_color(current_tree))
+	drive(-50, 0)
+	drive_speed(0,0)
 
 def deposit_fruit():
 	reached: bool = False

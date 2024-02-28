@@ -131,7 +131,7 @@ def rotate(rotation_angle: float, speed: float = 40, stall: bool = True, log: Lo
 
 	distance_log.add_distance(rot_angle=degrees_r)
 
-def move_arm(end_position: float, speed: float = 75, stall: bool = True) -> None:
+def move_arm(end_position: float, speed: float = 100, stall: bool = True) -> None:
 	"""
 	Moves the arm.
 
@@ -143,7 +143,7 @@ def move_arm(end_position: float, speed: float = 75, stall: bool = True) -> None
 	kill()
 	arm_motor.spin_to_position(end_position, DEGREES, speed, RPM, wait=stall)
 
-def move_claw(end_position: float, speed: int = 50, stall: bool = True) -> None:
+def move_claw(end_position: float, speed: int = 70, stall: bool = True) -> None:
 	"""
 	Moves the claw.
 
@@ -197,27 +197,27 @@ def reach_wall() -> bool:
 		drive_speed(0, 0)
 		return True
 
-past_side_dist = 0
+past_side_dist: float = 0
 
 def reach_bins() -> bool:
 	# wall following to bin
 	global past_side_dist
 
-	dist = front_range_finder.distance(DistanceUnits.CM)
+	dist: float = front_range_finder.distance(DistanceUnits.MM)
 
-	if abs(dist-10) > 1: # if we are not at the bins yet
+	if abs(dist-100) > 10: # if we are not at the bins yet
 		# print("distance to go: "+str(dist-10))
 		# orientation = imu.rotation()
 		# print(orientation)
 		# if abs(orientation) < 10: # if we are pointing relatively forwards...
 			# adjust distance from the wall and keep going
-		wall_dist = left_range_finder.distance(DistanceUnits.CM)
-		if abs(wall_dist-past_side_dist) > 40: #ignore if it gets a crazy value
+		wall_dist = left_range_finder.distance(DistanceUnits.MM)
+		if abs(wall_dist-past_side_dist) > 400: #ignore if it gets a crazy value
 			wall_dist = past_side_dist
 		else:
 			past_side_dist = wall_dist
-		effort = wall_dist - 18
-		drive_speed(-20, effort)
+		effort = wall_dist - 180
+		drive_speed(-20, effort / 10)
 		return False
 		# else:
 			# heading_error = 0-orientation
@@ -236,20 +236,22 @@ def go_to_bin_position(fruit_color: Signature) -> bool:
 	# ultrasonic is 15cm away from the center of the bot
 	bin_position: float = 0
 	if fruit_color == FruitColor.LEMON:
-		bin_position = 5.5
+		bin_position = 55
 	elif fruit_color == FruitColor.LIME:
-		bin_position = 45
+		bin_position = 450
 	elif fruit_color == FruitColor.ORANGE_FRUIT:
-		bin_position = 82
+		bin_position = 820
 
-	wall_dist = left_range_finder.distance(DistanceUnits.CM)
-	bin_dist = front_range_finder.distance(DistanceUnits.CM)
+	wall_dist: float = left_range_finder.distance(DistanceUnits.MM)
+	bin_dist: float = front_range_finder.distance(DistanceUnits.MM)
 	# print("bin_dist: "+str(bin_dist))
 	wall_error = wall_dist-bin_position
-	bin_error = bin_dist-10
-	if abs(wall_error) > 1 or abs(bin_error) > 1:
-		y_effort = 2 * wall_error 	# move however far away from the wall
-		x_effort = -1 * bin_error 				# stay 10cm in front of the bins
+	bin_error = bin_dist-100
+	if abs(bin_error) > 2000:
+		return False
+	if abs(wall_error) > 10 or abs(bin_error) > 10:
+		y_effort = 0.1 * wall_error 	# move however far away from the wall
+		x_effort = -0.05 * bin_error 				# stay 10cm in front of the bins
 		drive_speed(x_effort, y_effort)
 		return False
 	else:

@@ -116,18 +116,22 @@ def __define__src_tree():
 				return False
 			self._fill_colors(location[0], color)
 			self._at_location(location).set_height(height)
-			self._fill_third_tree(location[0])
+			# self._fill_third_tree(location[0])
 			return True
 	
 		def get_tree_color(self, location: tuple[int, int]) -> Signature:
 			if self._at_location(location):
 				return self._at_location(location).get_fruit_color()
-			raise Exception("Error: Tree at location " + str(location) + " not found. Query Variable: Color.")
+			print("TREE NOT FOUND")
+			return Signature(7, 0, 0, 0, 0, 0, 0, 0, 0)
+			# raise Exception("Error: Tree at location " + str(location) + " not found. Query Variable: Color.")
 	
 		def get_tree_height(self, location: tuple[int, int]) -> float:
 			if self._at_location(location).get_height() != 0:
 				return self._at_location(location).get_height()
-			raise Exception("Error: Tree at location " + str(location) + " not found. Query Variable: Height.")
+			print("TREE NOT FOUND")
+			return 0
+			# raise Exception("Error: Tree at location " + str(location) + " not found. Query Variable: Height.")
 	
 		def _fill_colors(self, row: int, color: Signature) -> None:
 			for tree in self._trees[row]:
@@ -327,7 +331,7 @@ def __define__src_movement():
 	
 		distance_log.add_distance(rot_angle=degrees_r)
 	
-	def move_arm(end_position: float, speed: float = 75, stall: bool = True) -> None:
+	def move_arm(end_position: float, speed: float = 100, stall: bool = True) -> None:
 		"""
 		Moves the arm.
 	
@@ -339,7 +343,7 @@ def __define__src_movement():
 		kill()
 		arm_motor.spin_to_position(end_position, DEGREES, speed, RPM, wait=stall)
 	
-	def move_claw(end_position: float, speed: int = 50, stall: bool = True) -> None:
+	def move_claw(end_position: float, speed: int = 70, stall: bool = True) -> None:
 		"""
 		Moves the claw.
 	
@@ -393,27 +397,27 @@ def __define__src_movement():
 			drive_speed(0, 0)
 			return True
 	
-	past_side_dist = 0
+	past_side_dist: float = 0
 	
 	def reach_bins() -> bool:
 		# wall following to bin
 		nonlocal past_side_dist
 	
-		dist = front_range_finder.distance(DistanceUnits.CM)
+		dist: float = front_range_finder.distance(DistanceUnits.MM)
 	
-		if abs(dist-10) > 1: # if we are not at the bins yet
+		if abs(dist-100) > 10: # if we are not at the bins yet
 			# print("distance to go: "+str(dist-10))
 			# orientation = imu.rotation()
 			# print(orientation)
 			# if abs(orientation) < 10: # if we are pointing relatively forwards...
 				# adjust distance from the wall and keep going
-			wall_dist = left_range_finder.distance(DistanceUnits.CM)
-			if abs(wall_dist-past_side_dist) > 40: #ignore if it gets a crazy value
+			wall_dist = left_range_finder.distance(DistanceUnits.MM)
+			if abs(wall_dist-past_side_dist) > 400: #ignore if it gets a crazy value
 				wall_dist = past_side_dist
 			else:
 				past_side_dist = wall_dist
-			effort = wall_dist - 18
-			drive_speed(-20, effort)
+			effort = wall_dist - 180
+			drive_speed(-20, effort / 10)
 			return False
 			# else:
 				# heading_error = 0-orientation
@@ -432,20 +436,22 @@ def __define__src_movement():
 		# ultrasonic is 15cm away from the center of the bot
 		bin_position: float = 0
 		if fruit_color == FruitColor.LEMON:
-			bin_position = 5.5
+			bin_position = 55
 		elif fruit_color == FruitColor.LIME:
-			bin_position = 45
+			bin_position = 450
 		elif fruit_color == FruitColor.ORANGE_FRUIT:
-			bin_position = 82
+			bin_position = 820
 	
-		wall_dist = left_range_finder.distance(DistanceUnits.CM)
-		bin_dist = front_range_finder.distance(DistanceUnits.CM)
+		wall_dist: float = left_range_finder.distance(DistanceUnits.MM)
+		bin_dist: float = front_range_finder.distance(DistanceUnits.MM)
 		# print("bin_dist: "+str(bin_dist))
 		wall_error = wall_dist-bin_position
-		bin_error = bin_dist-10
-		if abs(wall_error) > 1 or abs(bin_error) > 1:
-			y_effort = 2 * wall_error 	# move however far away from the wall
-			x_effort = -1 * bin_error 				# stay 10cm in front of the bins
+		bin_error = bin_dist-100
+		if abs(bin_error) > 2000:
+			return False
+		if abs(wall_error) > 10 or abs(bin_error) > 10:
+			y_effort = 0.1 * wall_error 	# move however far away from the wall
+			x_effort = -0.05 * bin_error 				# stay 10cm in front of the bins
 			drive_speed(x_effort, y_effort)
 			return False
 		else:
@@ -569,23 +575,24 @@ def __define__src_routes():
 	
 	def _go_to_row_tree(row: int):
 		if row == 0:
-			drive(0, 420, log=travel_log) # in mm
+			drive(0, 400, log=travel_log) # in mm
 		elif row == 1:
-			drive(0, 1420, log=travel_log)
+			drive(0, 1400, log=travel_log)
 		elif row == 2:
-			drive(0, 2350, log=travel_log)
+			drive(0, 2330, log=travel_log)
 	
 	def _go_to_col_tree(col: int):
 		if col == 0:
-			drive(585, 0, log=travel_log)
+			drive(600, 0, log=travel_log)
+			drive(0, 20, log=travel_log)
 		elif col == 1:
 			drive(0, -200, log=travel_log)
 			drive(650, 0, log=travel_log)
-			drive(0, 200, log=travel_log)
+			drive(0, 175, log=travel_log)
 		elif col == 2:
 			drive(0, -200, log=travel_log)
 			drive(600, 0, log=travel_log)
-			drive(0, 200, log=travel_log)
+			drive(0, 175, log=travel_log)
 		travel_log.reset_log()
 
 	l = locals()
@@ -609,12 +616,12 @@ def __define__src_fruits():
 	brain = __root__src_movement.brain
 	
 	fruit_sonic = Sonar(brain.three_wire_port.c) # NOTE: has a range of 30 to 3000 MM
-	camera = Vision(Ports.PORT14, 70, FruitColor.LIME) #, FruitColor.LEMON, FruitColor.ORANGE_FRUIT)
+	camera = Vision(Ports.PORT14, 70, FruitColor.LIME, FruitColor.LEMON, FruitColor.ORANGE_FRUIT) #FruitColor.LEMON, 
 	
 	orchard = Orchard()
 	
 	CLAW_SQUEEZE: float = 90
-	CLAW_CHOP: float = 90 # position of the claw right after chopping a fruit
+	CLAW_CHOP: float = 105 # position of the claw right after chopping a fruit
 	ARM_LOW: float = 125
 	ARM_MID: float = 1040
 	ARM_HIGH: float = 1925
@@ -626,16 +633,21 @@ def __define__src_fruits():
 		Returns:
 			Signature: the signature value of the color found.
 		"""
-		COLORS = [FruitColor.LIME] #, FruitColor.ORANGE_FRUIT]
+		COLORS = [FruitColor.LIME, FruitColor.ORANGE_FRUIT]
 		for color in COLORS:
 			objects: Tuple[VisionObject] = camera.take_snapshot(color, 1)
 			if objects:
+				if color == FruitColor.LIME:
+					print("LIME")
+				elif color == FruitColor.ORANGE_FRUIT:
+					print("ORANGE")
+				else:
+					print("WTF?!")
 				return color
 	
 		brain.screen.print_at("No fruit found.   ", x=50, y=100)
 		return 0 #Signature(0, 0, 0, 0, 0, 0, 0, 0, 0)
-		# raise Exception("Camera did not detect a fruit.")
-	
+		
 	def _get_height() -> float:
 		"""
 		Returns the distance found by the ultrasonic sensor.
@@ -662,6 +674,7 @@ def __define__src_fruits():
 				drive(-10, 0)
 				wait(500)
 				raw_height: float = _get_height()
+				print(_convert_height(raw_height))
 				brain.screen.print_at(_convert_height(raw_height), x=100, y=50)
 				orchard.add_tree(fruit_color, _convert_height(raw_height), location)
 				drive(-50, 130)
@@ -673,6 +686,7 @@ def __define__src_fruits():
 			drive(-90, 130)
 		#wait(500)
 		_grab_fruit(orchard.get_tree_height(location))
+		drive(90, -130)
 	
 	def _convert_height(old_height: float) -> float:
 		"""
@@ -703,11 +717,14 @@ def __define__src_fruits():
 			objects = camera.take_snapshot(fruit_color, 1)
 			if not objects:
 				brain.screen.clear_screen(Color.RED)
-				# raise Exception("No Fruit Found")
 				drive_speed(-0.1,-0.1)
+				wait(50)
 			else:
-				print(objects[0].width)
-				brain.screen.clear_screen(Color.GREEN)
+				# print(objects[0].width)
+				if fruit_color == FruitColor.LIME:
+					brain.screen.clear_screen(Color.GREEN)
+				elif fruit_color == FruitColor.ORANGE_FRUIT:
+					brain.screen.clear_screen(Color.ORANGE)
 				fruit = objects[0]
 				cx = fruit.centerX - 158 # subtract the center pixel value to shift to center equal 0
 				cy = fruit.centerY - 106 # subtract the center pixel value to shift to center equal 0
@@ -720,7 +737,7 @@ def __define__src_fruits():
 	
 	def _grab_fruit(fruit_height: float):
 		move_arm(fruit_height)
-		move_claw(CLAW_CHOP)
+		move_claw(CLAW_SQUEEZE, speed=30)
 		move_arm(10, stall=True)
 		move_claw(10, stall=False)
 
@@ -775,13 +792,11 @@ def __define__src_states():
 	FruitColor = __root__src_tree.FruitColor
 	
 	def test():
-		test_row: int = 1
 		# add testing code here
 		print("starting test...")
-		while True:
-			_center_on_fruit(FruitColor.LEMON)
-			brain.screen.clear_screen(Color.PURPLE)
-			sleep(2000)
+		obtain_fruit()
+		brain.screen.clear_screen(Color.PURPLE)
+		sleep(1000)
 		print("uh oh")
 	
 	### start of state functions
@@ -821,6 +836,7 @@ def __define__src_states():
 			current_tree = (2, 2)
 	
 		go_to_tree(current_tree)
+		wait(1000)
 	
 	def obtain_fruit():
 		get_fruit(current_tree)
@@ -838,6 +854,8 @@ def __define__src_states():
 		reached = False
 		while not reached:
 			reached = go_to_bin_position(FruitColor.LIME)# orchard.get_tree_color(current_tree))
+		drive(-50, 0)
+		drive_speed(0,0)
 	
 	def deposit_fruit():
 		reached: bool = False
@@ -903,7 +921,7 @@ def __define__src_main():
 	DEPOSITING = 4
 	RESETTING = 5
 	
-	curr_state: int = IDLING # don't run normal code
+	curr_state: int = IDLING
 	
 	testing: bool = False
 	
@@ -957,6 +975,7 @@ def __define__src_main():
 				print("RESETTING")
 				reset_position()
 				curr_state = TRAVELING
+				return
 	
 	
 	# initialize testing (will be triggered with button press and pre-run checks will be run here)
@@ -977,7 +996,7 @@ def __define__src_main():
 
 try: __define__src_main()
 except Exception as e:
-	s = [(20,"src\tree.py"),(198,"src\movement.py"),(558,"src\routes.py"),(602,"src\fruits.py"),(749,"src\states.py"),(879,"src\main.py"),(977,"<module>")]
+	s = [(20,"src\tree.py"),(202,"src\movement.py"),(564,"src\routes.py"),(609,"src\fruits.py"),(766,"src\states.py"),(897,"src\main.py"),(996,"<module>")]
 	def f(x: str):
 		if not x.startswith('  File'): return x
 		l = int(match('.+line (\\d+),.+', x).group(1))
